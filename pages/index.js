@@ -5,25 +5,28 @@ import { useState } from 'react'
 export default function Home() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
 
   const submitForm = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
     try {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       })
+      const result = await res.json()
       if (res.ok) {
-        setDone(true)
+        setData(result)
         setEmail('')
       } else {
-        alert('Error. Please try again')
+        setError(result.error || 'Error. Please try again')
       }
     } catch (err) {
-      alert('Connection error')
+      setError('Connection error')
     } finally {
       setLoading(false)
     }
@@ -39,6 +42,91 @@ export default function Home() {
     linkedin: '#'    
   }
 
+  // إذا نجح التسجيل: نعرض جواز السفر فقط
+  if (data) {
+    return (
+      <>
+        <Head>
+          <title>Aurelia X - Explorer Passport</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </Head>
+        <main className="page">
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}>
+            <div className="hero" style={{maxWidth: '500px', width: '100%'}}>
+              <div style={{textAlign: 'center'}}>
+                <div className="logo" style={{marginBottom: '10px'}}>Aurelia</div>
+                <span className="badge">Explorer Passport</span>
+                <div style={{
+                  background: '#ffffff06',
+                  border: '1px solid #ffffff08',
+                  borderRadius: '22px',
+                  padding: '30px',
+                  marginTop: '30px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{color: '#cfcbe6', fontSize: '14px', marginBottom: '8px'}}>رقم العضوية</p>
+                  <h2 style={{
+                    fontSize: '48px',
+                    margin: '0 0 20px',
+                    fontFamily: 'monospace',
+                    background: 'linear-gradient(90deg, #8B5CF6, #EC4899)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}>#{String(data.explorer_number).padStart(4, '0')}</h2>
+                  <p style={{color: '#cfcbe6', fontSize: '14px', marginBottom: '8px'}}>الحالة</p>
+                  <h3 style={{fontSize: '24px', margin: '0 0 20px'}}>{data.tier}</h3>
+                  <p style={{color: '#7CFFB2', fontSize: '16px'}}>Early Access Granted</p>
+                </div>
+                <p style={{color: '#cfcbe6'}}>أهلاً بك في المكتبة الرقمية للعالم</p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <style jsx>{`
+          .page {
+            min-height: 100vh;
+            background: #0F0A1E;
+            color: #fff;
+            padding: 30px;
+            font-family: Inter, system-ui, sans-serif;
+          }
+          .hero {
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 28px;
+            padding: 28px;
+            background:
+              radial-gradient(circle at top right, #8B5CF633, transparent 35%),
+              radial-gradient(circle at bottom left, #EC489933, transparent 30%),
+              #0B0717;
+            box-shadow: 0 0 60px rgba(139, 92, 246, .18);
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: .5px;
+          }
+          .badge {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #ffffff10;
+            border: 1px solid #ffffff12;
+            margin-bottom: 18px;
+            font-size: 13px;
+          }
+        `}</style>
+      </>
+    )
+  }
+
+  // قبل التسجيل: تصميمك الحالي 100% بدون تغيير
   return (
     <>
       <Head>
@@ -82,7 +170,7 @@ export default function Home() {
                 </button>
               </form>
 
-              {done && <small className="success">Successfully joined. We'll be in touch!</small>}
+              {error && <small style={{display: 'block', marginTop: '14px', color: '#FF6B6B'}}>{error}</small>}
             </div>
 
             <div className="right">
@@ -238,11 +326,6 @@ export default function Home() {
         button:disabled {
           opacity: .6;
           cursor: not-allowed;
-        }
-        .success {
-          display: block;
-          margin-top: 14px;
-          color: #7CFFB2;
         }
         .core {
           position: relative;
