@@ -1,37 +1,34 @@
 import { createClient } from '@supabase/supabase-js'
 
-// ناخذ المفاتيح من Vercel - نفس الاسم بالضبط
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_ANON_KEY
+// نستخدم المتغيرات اللي تبدأ بـ NEXT_PUBLIC_ الموجودة في Vercel
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default async function handler(req, res) {
-  // نقبل POST فقط
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const { email, source } = req.body
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' })
   }
 
   try {
-    const { email } = req.body
-
-    // نتأكد الإيميل موجود
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' })
-    }
-
-    // ندخل الإيميل في جدول subscribers
     const { data, error } = await supabase
       .from('subscribers')
-      .insert([{ email: email }])
+      .insert([{ email: email, source: source || 'aurelia-website' }])
+      .select()
 
     if (error) {
-      // لو الإيميل مكرر أو فيه مشكلة
+      console.log('Supabase Error:', error.message)
       return res.status(400).json({ error: error.message })
     }
 
-    // نجح كل شي
-    return res.status(200).json({ message: 'تم الاشتراك بنجاح', data: data })
+    return res.status(200).json({ message: 'Successfully joined', data: data })
 
   } catch (error) {
     return res.status(500).json({ error: 'Server error' })
