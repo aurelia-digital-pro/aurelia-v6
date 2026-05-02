@@ -11,8 +11,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email is required' })
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_ANON_KEY
+  // هذه تطابق أسماء المتغيرات في Vercel عندك بالضبط
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({ error: 'Supabase credentials not configured' })
@@ -20,6 +21,7 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseKey)
 
+  // هذا يطابق اسم الجدول والعمود في صورتك بالضبط
   const { data, error } = await supabase
     .from('subscribers')
     .insert([{ email: email }])
