@@ -1,37 +1,39 @@
 import { createClient } from '@supabase/supabase-js'
 
-// pages/api/subscribe.js
+// ناخذ المفاتيح من Vercel - نفس الاسم بالضبط
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_ANON_KEY
+
+const supabase = createClient(supabaseUrl, supabaseKey)
+
 export default async function handler(req, res) {
+  // نقبل POST فقط
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' })
   }
 
   try {
     const { email } = req.body
-    
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ message: 'Invalid email' })
+
+    // نتأكد الإيميل موجود
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' })
     }
 
-    // نربط مع Supabase هنا
-    const supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.VITE_SUPABASE_ANON_KEY
-    )
-
-    const { error } = await supabase
+    // ندخل الإيميل في جدول subscribers
+    const { data, error } = await supabase
       .from('subscribers')
-      .insert({ email: email })
+      .insert([{ email: email }])
 
     if (error) {
-      console.error('Supabase error:', error)
-      return res.status(500).json({ message: 'Database error' })
+      // لو الإيميل مكرر أو فيه مشكلة
+      return res.status(400).json({ error: error.message })
     }
 
-    return res.status(200).json({ message: 'Subscribed successfully' })
+    // نجح كل شي
+    return res.status(200).json({ message: 'تم الاشتراك بنجاح', data: data })
 
   } catch (error) {
-    console.error('Subscribe error:', error)
-    return res.status(500).json({ message: 'Server error' })
+    return res.status(500).json({ error: 'Server error' })
   }
 }
