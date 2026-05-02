@@ -1,104 +1,83 @@
 import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-// نستخدم المفتاحين السفليين فقط
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 export default function Home() {
   const [email, setEmail] = useState('')
+  const [consent, setConsent] = useState(false)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!consent) {
+      setStatus('يجب الموافقة على سياسة الخصوصية أولاً')
+      return
+    }
     setLoading(true)
     setStatus('')
-
-    const { error } = await supabase
-      .from('subscribers')
-      .insert([{ email: email }])
-
-    if (error) {
-      if (error.code === '23505') {
-        setStatus('مسجل من قبل')
+    
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, consent: true })
+      })
+      
+      const data = await res.json()
+      if (res.ok) {
+        setStatus('تم الاشتراك بنجاح ✓')
+        setEmail('')
+        setConsent(false)
       } else {
-        setStatus('فيه مشكلة: ' + error.message)
+        setStatus(data.error || 'حدث خطأ. حاول مرة أخرى')
       }
-    } else {
-      setStatus('تم الاشتراك بنجاح!')
-      setEmail('')
+    } catch (err) {
+      setStatus('فشل الاتصال. تحقق من الانترنت')
     }
     setLoading(false)
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'system-ui'
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        padding: '60px 40px',
-        borderRadius: '20px',
-        textAlign: 'center',
-        maxWidth: '500px',
-        border: '1px solid rgba(255,255,255,0.2)'
-      }}>
-        <h1 style={{ color: 'white', fontSize: '48px', marginBottom: '10px' }}>
-          Aurelia V6
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '40px' }}>
-          Where Science Meets Evolution
-        </p>
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <h1 className="text-4xl font-bold text-center mb-2">Aurelia V6</h1>
+        <p className="text-gray-400 text-center mb-8">انضم لقائمة الانتظار واحصل على وصول مبكر</p>
         
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ادخل ايميلك"
+            placeholder="بريدك الإلكتروني"
             required
-            style={{
-              width: '100%',
-              padding: '15px',
-              borderRadius: '10px',
-              border: 'none',
-              marginBottom: '20px',
-              fontSize: '16px'
-            }}
+            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           />
+          
+          <label className="flex items-start gap-3 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-1 w-4 h-4"
+            />
+            <span>
+              أوافق على <a href="/privacy" className="text-blue-400 underline">سياسة الخصوصية</a> واستلام رسائل حول Aurelia V6 حسب القانون 63-2004
+            </span>
+          </label>
+          
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '15px',
-              borderRadius: '10px',
-              border: 'none',
-              background: 'white',
-              color: '#764ba2',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 py-3 rounded-lg font-semibold transition"
           >
-            {loading ? 'جاري...' : 'اشترك الآن'}
+            {loading ? 'جاري الإرسال...' : 'انضم الآن'}
           </button>
+          
+          {status && (
+            <p className={`text-center text-sm ${status.includes('نجاح') ? 'text-green-400' : 'text-red-400'}`}>
+              {status}
+            </p>
+          )}
         </form>
-        
-        {status && (
-          <p style={{ color: 'white', marginTop: '20px', fontSize: '16px' }}>
-            {status}
-          </p>
-        )}
       </div>
     </div>
   )
