@@ -20,13 +20,23 @@ export default function Home() {
         setDone(true)
         setEmail('')
       } else {
-        alert('صار خطأ. حاول مرة ثانية')
+        alert('Error. Please try again')
       }
     } catch (err) {
-      alert('مشكلة في الاتصال')
+      alert('Connection error')
     } finally {
       setLoading(false)
     }
+  }
+
+  // روابطك معتمدة الآن
+  const socialLinks = {
+    email: 'mailto:Fouedsendi185@gmail.com',
+    whatsapp: 'https://wa.me/21624764833',
+    facebook: '#',   
+    instagram: '#',  
+    x: '#',          
+    linkedin: '#'    
   }
 
   return (
@@ -34,6 +44,7 @@ export default function Home() {
       <Head>
         <title>Aurelia Digital Library</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Open digital library powered by legal global sources and intelligent reading tools." />
       </Head>
 
       <main className="page">
@@ -92,16 +103,27 @@ export default function Home() {
         <section className="features">
           <div className="card">
             <h3>Freedom of Knowledge</h3>
-            <p>Millions of open books and research papers.</p>
+            <p>Millions of open books and research papers from verified legal sources.</p>
           </div>
           <div className="card">
             <h3>AI Native Core</h3>
-            <p>Smart summaries, recommendations and analytics.</p>
+            <p>Smart summaries, recommendations and analytics for deep learning.</p>
           </div>
           <div className="card">
             <h3>Built for Generations</h3>
-            <p>Modern infrastructure for schools and readers.</p>
+            <p>Modern infrastructure for schools, researchers and lifelong readers.</p>
           </div>
+        </section>
+
+        <section className="sources">
+          <h4>Open Knowledge Sources</h4>
+          <p className="sourcesList">
+            Project Gutenberg · Open Library · DOAJ · Internet Archive · arXiv
+          </p>
+          <small className="disclaimer">
+            Aurelia indexes publicly available open-access resources from independent third-party platforms. 
+            All trademarks and logos belong to their respective owners. No affiliation or endorsement implied.
+          </small>
         </section>
 
         <section className="stack">
@@ -111,6 +133,19 @@ export default function Home() {
           <span>Stripe</span>
           <span>Vercel</span>
         </section>
+
+        <section className="social">
+          <span className="socialText">Connect with Aurelia:</span>
+          <div className="socialLinks">
+            <a href={socialLinks.email}>Email</a>
+            <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href={socialLinks.facebook} className={socialLinks.facebook === '#' ? 'disabled' : ''}>Facebook</a>
+            <a href={socialLinks.instagram} className={socialLinks.instagram === '#' ? 'disabled' : ''}>Instagram</a>
+            <a href={socialLinks.x} className={socialLinks.x === '#' ? 'disabled' : ''}>X</a>
+            <a href={socialLinks.linkedin} className={socialLinks.linkedin === '#' ? 'disabled' : ''}>LinkedIn</a>
+          </div>
+          <small className="socialNote">Social channels opening soon</small>
+        </section>
       </main>
 
       <style jsx>{`
@@ -119,7 +154,7 @@ export default function Home() {
           background: #0F0A1E;
           color: #fff;
           padding: 30px;
-          font-family: Inter, sans-serif;
+          font-family: Inter, system-ui, sans-serif;
         }
         .hero {
           border: 1px solid rgba(255, 255, 255, .08);
@@ -271,18 +306,88 @@ export default function Home() {
         .card p {
           margin: 0;
           font-size: 15px;
+          line-height: 1.6;
+        }
+        .sources {
+          margin-top: 24px;
+          padding: 24px;
+          border-radius: 22px;
+          background: #ffffff06;
+          border: 1px solid #ffffff08;
+          text-align: center;
+        }
+        .sources h4 {
+          margin: 0 0 12px;
+          font-size: 18px;
+          font-weight: 600;
+        }
+        .sourcesList {
+          margin: 0 0 16px;
+          font-size: 15px;
+          color: #E9E7F6;
+        }
+        .disclaimer {
+          display: block;
+          color: #9C97B8;
+          font-size: 12px;
+          line-height: 1.5;
+          max-width: 700px;
+          margin: 0 auto;
         }
         .stack {
           margin-top: 24px;
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
+          justify-content: center;
         }
         .stack span {
           padding: 12px 16px;
           border-radius: 14px;
           background: #ffffff06;
           border: 1px solid #ffffff08;
+        }
+        .social {
+          margin-top: 24px;
+          text-align: center;
+        }
+        .socialText {
+          display: block;
+          color: #cfcbe6;
+          margin-bottom: 12px;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .socialLinks {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .socialLinks a {
+          padding: 10px 16px;
+          border-radius: 12px;
+          background: #ffffff06;
+          border: 1px solid #ffffff08;
+          color: #fff;
+          text-decoration: none;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+        .socialLinks a:hover:not(.disabled) {
+          background: #ffffff10;
+          transform: translateY(-2px);
+        }
+        .socialLinks a.disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+        .socialNote {
+          display: block;
+          margin-top: 12px;
+          color: #9C97B8;
+          font-size: 12px;
         }
         @media(max-width: 980px) {
           .heroGrid {
