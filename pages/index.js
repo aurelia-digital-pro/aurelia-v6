@@ -19,12 +19,16 @@ export default function Home() {
 
     const { error } = await supabase
       .from('subscribers')
-      .insert([{ email }])
+      .insert([{ email: email }])
 
     if (error) {
-      setStatus('خطأ: هذا الإيميل مسجل من قبل أو فيه مشكلة')
+      if (error.code === '23505') {
+        setStatus('مسجل من قبل')
+      } else {
+        setStatus('فيه مشكلة: ' + error.message)
+      }
     } else {
-      setStatus('تم التسجيل بنجاح! شكراً لك')
+      setStatus('تم الاشتراك بنجاح!')
       setEmail('')
     }
     setLoading(false)
@@ -34,60 +38,64 @@ export default function Home() {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Arial, sans-serif', padding: '20px'
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'system-ui'
     }}>
       <div style={{
-        background: 'white', borderRadius: '12px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxWidth: '450px', width: '100%', padding: '40px', textAlign: 'center'
+        background: 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)',
+        padding: '60px 40px',
+        borderRadius: '20px',
+        textAlign: 'center',
+        maxWidth: '500px',
+        border: '1px solid rgba(255,255,255,0.2)'
       }}>
-        <div style={{
-          background: '#1877f2', color: 'white', width: '60px', height: '60px',
-          borderRadius: '50%', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', margin: '0 auto 20px', fontSize: '30px', fontWeight: 'bold'
-        }}>f</div>
-
-        <h1 style={{ fontSize: '28px', margin: '0 0 10px', color: '#1c1e21' }}>
-          انضم إلينا الآن
+        <h1 style={{ color: 'white', fontSize: '48px', marginBottom: '10px' }}>
+          Aurelia V6
         </h1>
-        <p style={{ color: '#606770', marginBottom: '30px', fontSize: '16px' }}>
-          سجل بريدك الإلكتروني واحصل على آخر التحديثات
+        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '40px' }}>
+          Where Science Meets Evolution
         </p>
-
+        
         <form onSubmit={handleSubmit}>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="البريد الإلكتروني"
+            placeholder="ادخل ايميلك"
             required
             style={{
-              width: '100%', padding: '14px 16px', fontSize: '17px',
-              border: '1px solid #dddfe2', borderRadius: '6px',
-              marginBottom: '15px', boxSizing: 'border-box'
+              width: '100%',
+              padding: '15px',
+              borderRadius: '10px',
+              border: 'none',
+              marginBottom: '20px',
+              fontSize: '16px'
             }}
           />
           <button
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', padding: '14px', fontSize: '20px', fontWeight: 'bold',
-              color: 'white', background: loading ? '#8b9dc3' : '#1877f2',
-              border: 'none', borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer'
+              width: '100%',
+              padding: '15px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'white',
+              color: '#764ba2',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
             }}
           >
-            {loading ? 'جاري التسجيل...' : 'تسجيل'}
+            {loading ? 'جاري...' : 'اشترك الآن'}
           </button>
         </form>
-
+        
         {status && (
-          <p style={{
-            marginTop: '20px',
-            color: status.includes('نجاح') ? '#31a24c' : '#f02849',
-            fontWeight: '500'
-          }}>
+          <p style={{ color: 'white', marginTop: '20px', fontSize: '16px' }}>
             {status}
           </p>
         )}
