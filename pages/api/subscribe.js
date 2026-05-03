@@ -7,46 +7,37 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method Not Allowed' })
+    return res.status(405).json({ error: 'Method not allowed' })
   }
-
+  
   try {
-    const { email, consent } = req.body
-
-    if (!consent) {
-      return res.status(400).json({ error: 'Consent is required. Please accept Privacy Policy.' })
-    }
-
+    const { email } = req.body
+    
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
-      return res.status(400).json({ error: 'Please enter a valid email address.' })
+      return res.status(400).json({ error: 'Connection error' })
     }
-
-    const cleanEmail = email.trim().toLowerCase()
-
+    
     const { error } = await supabase
       .from('subscribers')
       .insert([{ 
-        email: cleanEmail, 
+        email: email.toLowerCase(), 
         consent: true,
-        consent_timestamp: new Date().toISOString(),
-        ip_address: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-        user_agent: req.headers['user-agent']
+        created_at: new Date().toISOString()
       }])
-
+    
     if (error) {
       if (error.code === '23505') {
-        return res.status(409).json({ error: 'This email is already on the waitlist.' })
+        return res.status(409).json({ error: 'Already subscribed' })
       }
-      return res.status(500).json({ error: 'Database error. Please try again.' })
+      return res.status(500).json({ error: 'Connection error' })
     }
-
+    
     return res.status(200).json({ 
       success: true, 
-      message: 'Welcome aboard! You are on the Aurelia waitlist.' 
+      message: 'You have been added successfully.' 
     })
-
+    
   } catch (err) {
-    return res.status(500).json({ error: 'Server error. Please try again.' })
+    return res.status(500).json({ error: 'Connection error' })
   }
 }
