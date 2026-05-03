@@ -50,6 +50,50 @@ export default function Home() {
     setLoading(false)
   }
 
+  // الاضافة فقط: مصفوفة الـ 5 كتب القانونية
+  const books = [
+    {
+      title: 'مقدمة ابن خلدون',
+      author: 'عبد الرحمن بن خلدون',
+      year: '1377',
+      desc: 'اعظم كتاب في علم الاجتماع والتاريخ الاسلامي',
+      link: 'https://archive.org/details/muqaddimah',
+      source: 'Islamic Heritage Project - Harvard'
+    },
+    {
+      title: 'Carthage',
+      author: 'Alfred J. Church',
+      year: '1888',
+      desc: 'تاريخ قرطاج وحروب حنبعل. تراث شمال افريقيا',
+      link: 'https://babel.hathitrust.org/cgi/pt?id=mdp.39015028150032',
+      source: 'HathiTrust Digital Library'
+    },
+    {
+      title: 'The Art of War',
+      author: 'Sun Tzu',
+      year: 'قبل الميلاد',
+      desc: 'اقدم كتاب استراتيجية عسكرية وادارية في العالم',
+      link: 'https://www.loc.gov/item/2001546887/',
+      source: 'Library of Congress'
+    },
+    {
+      title: 'Les Misérables',
+      author: 'Victor Hugo',
+      year: '1862',
+      desc: 'ملحمة البؤساء والصراع الانساني. اشهر رواية فرنسية',
+      link: 'https://gallica.bnf.fr/ark:/12148/bpt6k374336',
+      source: 'Gallica - Bibliothèque nationale de France'
+    },
+    {
+      title: 'The Prophet',
+      author: 'Khalil Gibran',
+      year: '1923',
+      desc: 'تأملات فلسفية وشعرية عالمية. يربط الشرق بالغرب',
+      link: 'https://babel.hathitrust.org/cgi/pt?id=mdp.39015014656292',
+      source: 'HathiTrust Digital Library'
+    }
+  ]
+
   return (
     <>
       <Head>
@@ -100,6 +144,41 @@ export default function Home() {
             By submitting your email, you agree to receive early access updates. Unsubscribe anytime
           </small>
         </div>
+
+        {/* الاضافة فقط: قسم كتب الافتتاح */}
+        <section style={styles.booksSection}>
+          <div style={styles.booksContainer}>
+            <h2 style={styles.booksTitle}>كتب الافتتاح: من التراث العالمي</h2>
+            <p style={styles.booksSubtitle}>
+              5 كتب نادرة قبل 1929. من ابن خلدون إلى قرطاج. كلها Public Domain
+            </p>
+
+            <div style={styles.booksGrid}>
+              {books.map((book, index) => (
+                <div key={index} style={styles.bookCard}>
+                  <h3 style={styles.bookTitle}>{book.title}</h3>
+                  <p style={styles.bookAuthor}>{book.author} - {book.year}</p>
+                  <p style={styles.bookDesc}>{book.desc}</p>
+                  <a
+                    href={book.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={styles.bookButton}
+                  >
+                    قراءة وتحميل من المصدر الرسمي
+                  </a>
+                  <small style={styles.bookSource}>المصدر: {book.source}</small>
+                </div>
+              ))}
+            </div>
+
+            <p style={styles.legalNote}>
+              جميع الكتب في الملكية العامة Public Domain قبل 1929. نحن لا نستضيف الملفات.
+              الروابط توجهك مباشرة للمصادر الحكومية والجامعية الرسمية وفق DMCA Section 512
+            </p>
+          </div>
+        </section>
+        {/* نهاية الاضافة */}
 
         <footer style={styles.footer}>
           <div style={styles.legal}>
@@ -200,6 +279,86 @@ const styles = {
     color: '#64748b',
     lineHeight: '1.6'
   },
+  // الاضافة فقط: ستايلات قسم الكتب
+  booksSection: {
+    width: '100%',
+    background: '#0f172a',
+    padding: '60px 20px',
+    borderTop: '1px solid #1e293b'
+  },
+  booksContainer: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    textAlign: 'center'
+  },
+  booksTitle: {
+    fontSize: '2.25rem',
+    fontWeight: '700',
+    marginBottom: '12px',
+    color: '#f1f5f9'
+  },
+  booksSubtitle: {
+    fontSize: '1.125rem',
+    color: '#94a3b8',
+    marginBottom: '48px'
+  },
+  booksGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '24px',
+    marginBottom: '40px'
+  },
+  bookCard: {
+    background: '#1e293b',
+    border: '1px solid #334155',
+    borderRadius: '12px',
+    padding: '24px',
+    textAlign: 'right',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  bookTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    marginBottom: '8px',
+    color: '#60a5fa'
+  },
+  bookAuthor: {
+    fontSize: '0.875rem',
+    color: '#cbd5e1',
+    marginBottom: '12px'
+  },
+  bookDesc: {
+    fontSize: '0.9rem',
+    color: '#94a3b8',
+    lineHeight: '1.6',
+    marginBottom: '20px',
+    flex: 1
+  },
+  bookButton: {
+    display: 'inline-block',
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+    color: '#fff',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    marginBottom: '12px',
+    transition: 'opacity 0.2s'
+  },
+  bookSource: {
+    fontSize: '0.75rem',
+    color: '#64748b'
+  },
+  legalNote: {
+    fontSize: '0.8rem',
+    color: '#64748b',
+    maxWidth: '800px',
+    margin: '0 auto',
+    lineHeight: '1.6'
+  },
+  // نهاية الاضافة
   footer: {
     padding: '32px 20px',
     borderTop: '1px solid #1e293b',
