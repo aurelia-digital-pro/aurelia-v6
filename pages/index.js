@@ -173,7 +173,7 @@ export default function Home() {
               </div>
 
               {floatingIcons.map((icon, i) => (
-                <div key={i} className={floatIcon icon${i + 1}}>
+                <div key={i} className={`floatIcon icon${i + 1}`}>
                   {icon}
                 </div>
               ))}
