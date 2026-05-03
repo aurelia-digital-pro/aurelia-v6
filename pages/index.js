@@ -81,6 +81,7 @@ export default function Home() {
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
                 style={styles.checkboxInput}
+                required
               />
               <span>
                 أوافق على استلام تحديثات الوصول المبكر. يمكنك إلغاء الاشتراك في أي وقت
@@ -90,6 +91,8 @@ export default function Home() {
             <button type="submit" disabled={loading} style={styles.button}>
               {loading? 'جاري التسجيل...' : 'انضم للوصول المبكر'}
             </button>
+
+            <p style={styles.legalLine}>We respect your privacy. No spam, ever.</p>
 
             {message && <p style={styles.message}>{message}</p>}
           </form>
@@ -188,6 +191,11 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     transition: 'opacity 0.2s'
+  },
+  legalLine: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    marginTop: '-8px'
   },
   message: {
     marginTop: '8px',
