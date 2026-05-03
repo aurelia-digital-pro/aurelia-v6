@@ -19,7 +19,7 @@ export default function About() {
           We are not a commercial marketplace. We do not sell products. Our focus is purely on the advancement of human knowledge and fostering a community of lifelong learners. Aurelia stands for intellectual growth, innovation, and the free exchange of ideas.
         </p>
         <p>
-          For any inquiries, please contact us at: <strong>support@aurelia.com</strong>
+          For any inquiries, please contact us at: <strong>digital.aurelia.2026@gmail.com</strong>
         </p>
 
         <hr style={{ margin: '3rem 0' }} />
@@ -32,7 +32,7 @@ export default function About() {
           نحن لسنا سوقا تجاريا. لا نبيع منتجات. تركيزنا ينصب بالكامل على تقدم المعرفة البشرية وتعزيز مجتمع من المتعلمين مدى الحياة. أوريليا تمثل النمو الفكري والابتكار والتبادل الحر للأفكار.
         </p>
         <p dir="rtl">
-          لأي استفسارات، يرجى التواصل معنا عبر: <strong>support@aurelia.com</strong>
+          لأي استفسارات، يرجى التواصل معنا عبر: <strong>digital.aurelia.2026@gmail.com</strong>
         </p>
       </main>
     </>
