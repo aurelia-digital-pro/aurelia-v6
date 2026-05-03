@@ -105,7 +105,8 @@ export default function Home() {
           <div style={styles.legal}>
             <a href="/privacy" style={styles.link}>Privacy Policy</a> |
             <a href="/terms" style={styles.link}> Terms</a> |
-            <a href="/dmca" style={styles.link}> DMCA</a>
+            <a href="/dmca" style={styles.link}> DMCA</a> |
+            <a href="/about" style={styles.link}> About Us</a>
           </div>
           <div style={styles.copy}>
             © {new Date().getFullYear()} Aurelia Digital Library. All rights reserved. | جميع الحقوق محفوظة
