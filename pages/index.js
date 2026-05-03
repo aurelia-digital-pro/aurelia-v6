@@ -9,8 +9,17 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState(false)
 
+  // 1. قائمة الايميلات المؤقتة الممنوعة
+  const blockedDomains = [
+    'tempmail.com', '10minutemail.com', 'guerrillamail.com', 
+    'mailinator.com', 'yopmail.com', 'trashmail.com', 'getnada.com'
+  ]
+
   const isValidEmail = useMemo(() => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    const trimmedEmail = email.trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+    const isBlocked = blockedDomains.some(domain => trimmedEmail.endsWith('@' + domain))
+    return emailRegex && !isBlocked
   }, [email])
 
   async function handleSubmit(e) {
@@ -18,8 +27,13 @@ export default function Home() {
     setMessage('')
     setSuccess(false)
 
+    if (!email.trim()) {
+      setMessage('Please enter your email address.')
+      return
+    }
+
     if (!isValidEmail) {
-      setMessage('Please enter a valid email address.')
+      setMessage('Please use a real email address. Temporary emails are not allowed.')
       return
     }
 
@@ -52,7 +66,7 @@ export default function Home() {
       setSuccess(true)
       setEmail('')
       setAgree(false)
-      setMessage(data.message || 'You have been added successfully.')
+      setMessage(data.message || 'Check your email to confirm your access.')
     } catch (error) {
       setMessage('Network error. Please try again.')
     } finally {
