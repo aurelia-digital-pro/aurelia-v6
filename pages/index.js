@@ -116,7 +116,6 @@ export default function Home() {
       </Head>
 
       <main style={styles.main}>
-        {/* الهيدر القانوني */}
         <header style={styles.header}>
           <div style={styles.headerInner}>
             <h2 style={styles.logo}>Aurelia</h2>
@@ -129,7 +128,6 @@ export default function Home() {
           </div>
         </header>
 
-        {/* العنوان الاحترافي للافتتاح */}
         <section style={styles.hero}>
           <h1 style={styles.title}>The Aurelia Opening Collection</h1>
           <h2 style={styles.titleAr}>مجموعة افتتاح مكتبة أوريليا</h2>
@@ -140,7 +138,6 @@ export default function Home() {
           </p>
         </section>
 
-        {/* الكتب في الواجهة - أول شي */}
         <section style={styles.booksSection}>
           <div style={styles.booksContainer}>
             <div style={styles.noticeBox}>
@@ -180,7 +177,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* فورم الايميل في الوسط - واضح */}
         <section style={styles.emailSection}>
           <div style={styles.emailContainer}>
             <h2 style={styles.emailTitle}>Join Early Access</h2>
@@ -224,7 +220,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* الفوتر القانوني */}
         <footer style={styles.footer}>
           <div style={styles.footerInner}>
             <p style={styles.footerText}>
