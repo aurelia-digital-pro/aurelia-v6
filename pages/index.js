@@ -1,149 +1,103 @@
-"}
-```javascript
-// pages/index.js
-// AURELIA P1 FINAL + KNOWLEDGE UI (MERGED SAFE)
-
-import { useMemo, useState } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
+import Head from 'next/head';
+import { useState } from 'react';
+import Sidebar from '../components/Sidebar';
 
 export default function Home() {
-  const [email, setEmail] = useState('')
-  const [agree, setAgree] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState({ msg: '', type: '' });
 
-  const blockedDomains = [
-    'tempmail.com','10minutemail.com','guerrillamail.com',
-    'mailinator.com','yopmail.com','trashmail.com','getnada.com'
-  ]
+  const books = [
+    { title: "مقدمة ابن خلدون", auth: "ابن خلدون", link: "https://archive.org/details/WAQ15143" },
+    { title: "The Art of War", auth: "Sun Tzu", link: "https://www.gutenberg.org/ebooks/132" },
+    { title: "The Prophet", auth: "Kahlil Gibran", link: "https://www.gutenberg.org/ebooks/58585" },
+    { title: "Les Misérables", auth: "Victor Hugo", link: "https://www.gutenberg.org/ebooks/135" },
+    { title: "Principia Mathematica", auth: "Isaac Newton", link: "https://archive.org/details/principiamathem02newt" }
+  ];
 
-  const isValidEmail = useMemo(() => {
-    const clean = email.trim().toLowerCase()
-    const regex = /^[^\s@]+@[^\s@]+.[^\s@]+$/.test(clean)
-    const blocked = blockedDomains.some((d)=>clean.endsWith('@'+d))
-    return regex && !blocked
-  }, [email])
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setMessage('')
-    setSuccess(false)
-
-    if (!email.trim()) return setMessage('Please enter your email.')
-    if (!isValidEmail) return setMessage('Use a real email.')
-    if (!agree) return setMessage('Accept Privacy Policy.')
-
-    try {
-      setLoading(true)
-      const res = await fetch('/api/subscribe',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email:email.trim(),consent:agree})
-      })
-      const data = await res.json()
-      if(!res.ok) return setMessage(data.error||'Error')
-
-      setSuccess(true)
-      setEmail('')
-      setAgree(false)
-      setMessage('Access request received.')
-    } catch {
-      setMessage('Network error.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const subscribe = async (e) => {
+    e.preventDefault();
+    setStatus({ msg: 'جاري الإرسال...', type: 'ok' });
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, consent: true })
+    });
+    const data = await res.json();
+    setStatus({ msg: data.message || data.error, type: res.ok? 'ok' : 'err' });
+    if(res.ok) setEmail('');
+  };
 
   return (
-    <>
+    <div className="bg-[#05040b] min-h-screen text-white flex flex-row-reverse font-sans">
       <Head>
-        <title>Aurelia Digital Library</title>
+        <title>Aurelia Digital Library | Future Knowledge Access</title>
+        <link rel="canonical" href="https://aurelia-v6.vercel.app" />
       </Head>
 
-      <main className="page">
+      <Sidebar />
 
-        {/* NAV /}
-        <header className="navbar">
-          <div className="brand">Aurelia</div>
-          <nav className="nav">
-            <a href="#books">Books</a>
-            <a href="#sources">Sources</a>
-            <Link href="/privacy">Privacy</Link>
-          </nav>
-          <a href="#join" className="topBtn">Early Access</a>
+      <main className="flex-1 lg:mr-64 p-4 lg:p-10">
+        <header className="flex justify-between items-center mb-10 border-b border-white/5 pb-6">
+          <div className="flex gap-4 items-center">
+            <button className="bg-purple-600 px-6 py-2 rounded-full font-bold text-sm hover:bg-purple-700 transition-all">إنشاء حساب</button>
+            <span className="text-gray-400 cursor-pointer">EN</span>
+          </div>
+          <div className="relative w-1/3">
+            <input type="text" placeholder="ابحث عن كتاب، مؤلف، موضوع..." className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-10 text-right focus:border-purple-500 outline-none transition-all" />
+          </div>
         </header>
 
-        {/ HERO + FORM /}
-        <section className="hero">
-          <div>
-            <h1>The Future of Knowledge</h1>
-
-            <form onSubmit={handleSubmit} className="card" id="join">
-              <input
-                type="email"
-                placeholder="you@example.com"
+        <section className="relative rounded-[2.5rem] overflow-hidden mb-12 border border-white/10 bg-gradient-to-l from-purple-900/20 to-black p-12 text-right">
+          <div className="relative z-10">
+            <h2 className="text-5xl font-black mb-4 leading-tight">حيث يلتقي <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">العلم بالتطور</span></h2>
+            <p className="text-gray-400 mb-8 max-w-md ml-auto">مكتبة رقمية مفتوحة تجمع ملايين الكتب والأبحاث من أفضل المصادر الأكاديمية العالمية.</p>
+            
+            <form onSubmit={subscribe} className="flex flex-col items-end gap-4">
+              <input 
+                type="email" 
                 value={email}
                 onChange={(e)=>setEmail(e.target.value)}
-                className="input"
+                placeholder="بريدك للوصول المبكر..." 
+                required
+                className="bg-white/5 border border-white/10 rounded-xl p-4 w-80 text-right outline-none focus:border-purple-500"
               />
-
-              <label className="check">
-                <input type="checkbox"
-                  checked={agree}
-                  onChange={(e)=>setAgree(e.target.checked)}
-                />
-                <span>I agree to <Link href="/privacy">Privacy</Link></span>
-              </label>
-
-              <button className="btn" disabled={loading}>
-                {loading?'...':'Join'}
-              </button>
-
-              {message && (
-                <div className={success?'msg ok':'msg err'}>
-                  {message}
-                </div>
-              )}
+              <button type="submit" className="bg-purple-600 px-10 py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20">استكشف المكتبة</button>
+              {status.msg && <p className={`text-xs ${status.type === 'ok'? 'text-green-400' : 'text-red-400'}`}>{status.msg}</p>}
             </form>
           </div>
         </section>
 
-        {/ BOOKS /}
-        <section id="books" className="section">
-          <h2>Core Books</h2>
-
-          <div className="grid">
-            <a href="https://archive.org/details/muqaddimah_202107" target="_blank">مقدمة ابن خلدون</a>
-            <a href="https://ctext.org/art-of-war" target="_blank">فن الحرب</a>
-            <a href="https://www.gutenberg.org/ebooks/58585" target="_blank">النبي</a>
-            <a href="https://www.gutenberg.org/ebooks/135" target="_blank">البؤساء</a>
-            <a href="https://www.gutenberg.org/ebooks/28233" target="_blank">Newton Principia</a>
+        <div className="mb-12">
+          <div className="flex justify-between items-center mb-8">
+             <button className="text-purple-400 text-sm hover:underline">عرض الكل</button>
+             <h3 className="text-2xl font-bold border-r-4 border-purple-600 pr-4">أروع الكتب الخالدة</h3>
           </div>
-        </section>
-
-        {/ SOURCES /}
-        <section id="sources" className="section">
-          <h2>Trusted Sources</h2>
-
-          <div className="grid">
-            <a href="https://www.nasa.gov/" target="_blank">NASA</a>
-            <a href="https://ocw.mit.edu/" target="_blank">MIT</a>
-            <a href="https://www.si.edu/openaccess" target="_blank">Smithsonian</a>
-            <a href="https://www.wolframalpha.com/" target="_blank">WolframAlpha</a>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            {books.map((b,i)=>(
+              <div key={i} className="group cursor-pointer">
+                <div className="aspect-[3/4] bg-[#111] rounded-2xl border border-white/10 mb-4 overflow-hidden relative group-hover:border-purple-500/50 transition-all">
+                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-4">
+                      <a href={b.link} target="_blank" className="w-full py-2 bg-purple-600 rounded-lg text-xs text-center font-bold">قراءة الآن</a>
+                   </div>
+                   <div className="h-full w-full flex items-center justify-center text-gray-800 italic text-[10px] p-4 text-center">{b.title}</div>
+                </div>
+                <h4 className="text-sm font-bold text-right truncate">{h4>{b.title}</h4>
+                <p className="text-[10px] text-gray-500 text-right uppercase tracking-widest">{b.auth}</p>
+              </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/ FOOTER */}
-        <footer className="footer">
-          © Aurelia Digital Library
+        <footer className="border-t border-white/5 mt-20 pt-10 flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-500 gap-4 uppercase tracking-tighter">
+           <p>© 2026 Aurelia Digital Library. All rights reserved.</p>
+           <div className="flex gap-6">
+             <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+             <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+             <a href="/dmca" className="hover:text-white transition-colors">DMCA</a>
+           </div>
+           <p className="font-bold">Contact: fouedsendi185@gmail.com</p>
         </footer>
-
       </main>
-
-      <style jsx>{        .page{background:#05040b;color:white;padding:20px}         .navbar{display:flex;justify-content:space-between}         .grid{display:grid;gap:10px}         .card{margin-top:20px}         .input{width:100%;padding:10px}         .btn{margin-top:10px}      }</style>
-    </>
-  )
+    </div>
+  );
 }
-`
