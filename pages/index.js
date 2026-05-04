@@ -1,147 +1,173 @@
-// pages/index.js - AURELIA P6 OFFICIAL FINAL
-// DO NOT EDIT - النسخة الرسمية النهائية
-import { useState } from 'react'
+// pages/terms.js
 import Head from 'next/head'
 
-export default function Home() {
-  const [email, setEmail] = useState('')
-  const [msg, setMsg] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const books = [
-    {
-      title: 'مقدمة ابن خلدون',
-      author: 'ابن خلدون',
-      year: '1377',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Muqaddimah_Ibn_Khaldun_1st_page.jpg',
-      link: 'https://archive.org/details/muqaddimah'
-    },
-    {
-      title: 'Carthage',
-      author: 'R. Bosworth Smith',
-      year: '1878',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Dido_Building_Carthage.jpg',
-      link: 'https://www.gutenberg.org/ebooks/72903'
-    },
-    {
-      title: 'The Art of War',
-      author: 'Sun Tzu',
-      year: 'BC',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Sunzi_bingfa.jpg',
-      link: 'https://www.gutenberg.org/ebooks/132'
-    },
-    {
-      title: 'Les Misérables',
-      author: 'Victor Hugo',
-      year: '1862',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/5/5a/Les_miserables_Cover.jpg',
-      link: 'https://www.gutenberg.org/ebooks/135'
-    },
-    {
-      title: 'The Prophet',
-      author: 'Khalil Gibran',
-      year: '1923',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/1/1a/The_Prophet_%281923%29_cover.jpg',
-      link: 'https://www.gutenberg.org/ebooks/58585'
-    },
-    {
-      title: 'Webster Dictionary',
-      author: 'Noah Webster',
-      year: '1913',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/6/65/Webster%27s_New_International_Dictionary_1913.jpg',
-      link: 'https://www.gutenberg.org/ebooks/673'
-    }
-  ]
-
-  const submit = (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setMsg('تم التسجيل بنجاح | Registered Successfully')
-      setEmail('')
-      setLoading(false)
-    }, 1200)
-  }
-
+export default function Terms() {
   return (
     <>
       <Head>
-        <title>Aurelia Digital Library</title>
-        <meta name="description" content="Aurelia Global Digital Library for Public Domain Books" />
+        <title>Terms of Service | Aurelia Digital Library</title>
+        <meta
+          name="description"
+          content="Terms of Service for Aurelia Digital Library."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="page">
-        <header className="nav">
-          <div className="logo">AURELIA</div>
-        </header>
+      <main style={styles.main}>
+        <div style={styles.container}>
+          <h1 style={styles.title}>Terms of Service</h1>
+          <p style={styles.updated}>
+            Last updated: {new Date().toLocaleDateString('en-US')}
+          </p>
 
-        <section className="hero">
-          <h1>The Future of Digital Knowledge</h1>
-          <p>مكتبة رقمية عالمية للمحتوى المفتوح والكتب العامة</p>
-          <form onSubmit={submit} className="form">
-            <input
-              type="email"
-              required
-              placeholder="بريدك الإلكتروني"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button type="submit">
-              {loading ? 'Loading...' : 'انضم للوصول المبكر'}
-            </button>
-            {msg && <div className="msg">{msg}</div>}
-          </form>
-        </section>
+          <section style={styles.section}>
+            <h2 style={styles.heading}>1. Acceptance of Terms</h2>
+            <p style={styles.text}>
+              By accessing or using Aurelia Digital Library, you agree to be
+              bound by these Terms of Service. If you do not agree, please do
+              not use the website.
+            </p>
+          </section>
 
-        <section className="books">
-          <h2>كتب الافتتاح</h2>
-          <div className="grid">
-            {books.map((b, i) => (
-              <div className="card" key={i}>
-                <div className="num">{i + 1}</div>
-                <img src={b.img} alt={b.title} loading="lazy" />
-                <h3>{b.title}</h3>
-                <p>{b.author}</p>
-                <small>{b.year}</small>
-                <a href={b.link} target="_blank" rel="noopener noreferrer nofollow">
-                  قراءة وتحميل
-                </a>
-              </div>
-            ))}
+          <section style={styles.section}>
+            <h2 style={styles.heading}>2. Description of Service</h2>
+            <p style={styles.text}>
+              Aurelia Digital Library is a digital platform that provides
+              access to public domain materials, open knowledge resources,
+              educational references, and early access updates related to the
+              project.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>3. User Conduct</h2>
+            <p style={styles.text}>
+              You agree not to misuse the website, attempt unauthorized access,
+              distribute harmful code, submit false information, or use the
+              service for unlawful purposes.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>4. Intellectual Property</h2>
+            <p style={styles.text}>
+              Original branding, design, text, and platform elements of
+              Aurelia Digital Library are protected by applicable intellectual
+              property laws. Public domain and open-license materials remain
+              subject to their respective licenses or legal status.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>5. External Sources</h2>
+            <p style={styles.text}>
+              Some materials may reference third-party sources or repositories.
+              We do not control third-party websites and are not responsible
+              for their content, availability, or policies.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>6. Disclaimer</h2>
+            <p style={styles.text}>
+              The service is provided on an “as is” and “as available” basis
+              without warranties of any kind, to the maximum extent permitted
+              by law.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>7. Limitation of Liability</h2>
+            <p style={styles.text}>
+              To the extent permitted by law, Aurelia Digital Library shall not
+              be liable for indirect, incidental, or consequential damages
+              arising from use of the website.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>8. Governing Law</h2>
+            <p style={styles.text}>
+              These Terms shall be governed by the applicable laws of Tunisia,
+              without prejudice to mandatory consumer protections required by
+              other jurisdictions where applicable.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.heading}>9. Contact</h2>
+            <p style={styles.text}>
+              For questions regarding these Terms:
+              <br />
+              fouedsendi185@gmail.com
+            </p>
+          </section>
+
+          <div style={styles.footer}>
+            <a href="/" style={styles.link}>Home</a>
+            <span style={styles.sep}>|</span>
+            <a href="/privacy" style={styles.link}>Privacy Policy</a>
+            <span style={styles.sep}>|</span>
+            <a href="/dmca" style={styles.link}>DMCA</a>
           </div>
-        </section>
-
-        <footer className="footer">
-          <div>AURELIA DIGITAL LIBRARY</div>
-          <p>Public Domain • DMCA Compliant • External Sources Only</p>
-        </footer>
+        </div>
       </main>
-
-      <style jsx>{`
-        .page { background: linear-gradient(180deg, #020617, #0f172a); min-height: 100vh; color: white; font-family: Arial; }
-        .nav { display: flex; justify-content: center; padding: 22px 30px; border-bottom: 1px solid #1e293b; }
-        .logo { font-size: 28px; font-weight: bold; background: linear-gradient(90deg, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero { max-width: 850px; margin: auto; text-align: center; padding: 80px 20px; }
-        .hero h1 { font-size: 58px; line-height: 1.1; margin-bottom: 20px; background: linear-gradient(90deg, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero p { color: #cbd5e1; font-size: 20px; margin-bottom: 35px; }
-        .form { max-width: 600px; margin: auto; }
-        input { width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 15px; }
-        button { width: 100%; padding: 18px; border: none; border-radius: 12px; background: linear-gradient(90deg, #2563eb, #9333ea); color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
-        .msg { margin-top: 15px; color: #38bdf8; }
-        .books { padding: 50px 20px; max-width: 1400px; margin: auto; }
-        .books h2 { text-align: center; font-size: 42px; margin-bottom: 35px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 25px; }
-        .card { background: #0f172a; border: 1px solid #1e293b; padding: 18px; border-radius: 18px; text-align: center; position: relative; }
-        .num { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(90deg, #2563eb, #9333ea); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .card img { width: 100%; height: 320px; object-fit: cover; border-radius: 14px; margin-bottom: 15px; }
-        .card h3 { margin: 10px 0 8px; }
-        .card p { color: #cbd5e1; margin: 0; }
-        .card small { display: block; margin: 8px 0 14px; color: #94a3b8; }
-        .card a { display: block; padding: 12px; background: linear-gradient(90deg, #2563eb, #9333ea); border-radius: 12px; color: white; text-decoration: none; font-weight: bold; }
-        .footer { text-align: center; padding: 50px 20px; color: #94a3b8; border-top: 1px solid #1e293b; margin-top: 50px; }
-        @media (max-width: 768px) { .hero h1 { font-size: 38px; } }
-      `}</style>
     </>
   )
+}
+
+const styles = {
+  main: {
+    minHeight: '100vh',
+    background: '#0f172a',
+    color: '#ffffff',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px'
+  },
+  container: {
+    maxWidth: '820px',
+    margin: '0 auto',
+    background: '#111827',
+    border: '1px solid #1f2937',
+    borderRadius: '14px',
+    padding: '40px'
+  },
+  title: {
+    fontSize: '2.4rem',
+    fontWeight: '800',
+    marginBottom: '10px'
+  },
+  updated: {
+    color: '#94a3b8',
+    marginBottom: '30px',
+    fontSize: '0.95rem'
+  },
+  section: {
+    marginBottom: '28px'
+  },
+  heading: {
+    fontSize: '1.35rem',
+    fontWeight: '700',
+    marginBottom: '10px',
+    color: '#60a5fa'
+  },
+  text: {
+    color: '#d1d5db',
+    lineHeight: '1.8',
+    fontSize: '1rem'
+  },
+  footer: {
+    marginTop: '35px',
+    paddingTop: '25px',
+    borderTop: '1px solid #1f2937',
+    textAlign: 'center'
+  },
+  link: {
+    color: '#60a5fa',
+    textDecoration: 'none',
+    margin: '0 8px'
+  },
+  sep: {
+    color: '#64748b'
+  }
 }
