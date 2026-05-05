@@ -1,6 +1,3 @@
-واجهة اوريليا 
-
-
 
 // pages/index.js
 // AURELIA OFFICIAL P1 FINAL
