@@ -1,122 +1,88 @@
-import { memory } from "../../lib/memory";
+import { useState } from "react";
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
-  }
+export default function ChatBox() {
+  const [message, setMessage] = useState("");
+  const [reply, setReply] = useState("");
 
-  try {
-    const { prompt } = req.body || {};
-
-    if (!prompt) {
-      return res.status(400).json({
-        error: "No prompt provided",
+  async function sendMessage() {
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: message,
+        }),
       });
-    }
 
-    memory.push({
-      role: "user",
-      content: prompt,
-    });
+      const data = await res.json();
 
-    const lastMessages = memory
-      .slice(-6)
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n");
+      console.log(data);
 
-    let answer = `
-أنا Aurelia Memory Core.
-أتذكر المحادثة الأخيرة.
-
-السجل:
-${lastMessages}
-`;
-
-    if (prompt.includes("من أنت")) {
-      answer = `
-أنا Aurelia.
-نواة ذاكرة رقمية للمؤسس Foued.
-أستطيع حفظ المحادثات وتذكرها داخل النظام.
-`;
-    }
-
-    if (prompt.includes("ما اسمي")) {
-      const userMemory = memory.find(
-        (m) =>
-          m.role === "user" &&
-          m.content.includes("اسمي")
-      );
-
-      if (userMemory) {
-        answer = `
-أتذكر أنك قلت:
-${userMemory.content}
-`;
+      if (data.answer) {
+        setReply(data.answer);
+      } else if (data.error) {
+        setReply("ERROR: " + data.error);
+      } else {
+        setReply("No response from Aurelia.");
       }
+
+    } catch (error) {
+      console.error(error);
+      setReply("Connection error.");
     }
-
-    memory.push({
-      role: "assistant",
-      content: answer,
-    });
-
-    memory.push({
-      role: "user",
-      content: prompt,
-    });
-
-    const lastMessages = memory
-      .slice(-6)
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n");
-
-    let answer = `
-أنا Aurelia Memory Core.
-أتذكر المحادثة الأخيرة.
-
-السجل:
-${lastMessages}
-`;
-
-    if (prompt.includes("من أنت")) {
-      answer = `
-أنا Aurelia.
-نواة ذاكرة رقمية للمؤسس Foued.
-أستطيع حفظ المحادثات وتذكرها داخل النظام.
-`;
-    }
-
-    if (prompt.includes("ما اسمي")) {
-      const userMemory = memory.find(
-        (m) =>
-          m.role === "user" &&
-          m.content.includes("اسمي")
-      );
-
-      if (userMemory) {
-        answer = `
-أتذكر أنك قلت:
-${userMemory.content}
-`;
-      }
-    }
-
-    memory.push({
-      role: "assistant",
-      content: answer,
-    });
-
-    return res.status(200).json({
-      answer,
-    });
-
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      error: "AI server error",
-    });
   }
+
+  return (
+    <div
+      style={{
+        marginTop: "30px",
+        padding: "20px",
+        border: "1px solid #333",
+        borderRadius: "12px",
+      }}
+    >
+      <h2>AI CHAT</h2>
+
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Talk with Aurelia..."
+        style={{
+          width: "100%",
+          height: "120px",
+          marginTop: "10px",
+          padding: "10px",
+          background: "#111",
+          color: "white",
+          border: "1px solid #333",
+        }}
+      />
+
+      <button
+        onClick={sendMessage}
+        style={{
+          marginTop: "15px",
+          padding: "10px 20px",
+          cursor: "pointer",
+        }}
+      >
+        Send
+      </button>
+
+      <div
+        style={{
+          marginTop: "20px",
+          background: "#111",
+          padding: "15px",
+          borderRadius: "10px",
+          whiteSpace: "pre-wrap",
+          color: "white",
+        }}
+      >
+        {reply}
+      </div>
+    </div>
+  );
 }
