@@ -1,88 +1,68 @@
-import { useState } from "react";
+import { memory } from "../../lib/memory";
 
-export default function ChatBox() {
-  const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
-
-  async function sendMessage() {
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: message,
-        }),
-      });
-
-      const data = await res.json();
-
-      console.log(data);
-
-      if (data.answer) {
-        setReply(data.answer);
-      } else if (data.error) {
-        setReply("ERROR: " + data.error);
-      } else {
-        setReply("No response from Aurelia.");
-      }
-
-    } catch (error) {
-      console.error(error);
-      setReply("Connection error.");
-    }
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed",
+    });
   }
 
-  return (
-    <div
-      style={{
-        marginTop: "30px",
-        padding: "20px",
-        border: "1px solid #333",
-        borderRadius: "12px",
-      }}
-    >
-      <h2>AI CHAT</h2>
+  try {
+    const { prompt } = req.body;
 
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Talk with Aurelia..."
-        style={{
-          width: "100%",
-          height: "120px",
-          marginTop: "10px",
-          padding: "10px",
-          background: "#111",
-          color: "white",
-          border: "1px solid #333",
-        }}
-      />
+    if (!prompt) {
+      return res.status(400).json({
+        error: "No prompt provided",
+      });
+    }
 
-      <button
-        onClick={sendMessage}
-        style={{
-          marginTop: "15px",
-          padding: "10px 20px",
-          cursor: "pointer",
-        }}
-      >
-        Send
-      </button>
+    memory.conversations.push({
+      role: "user",
+      content: prompt,
+    });
 
-      <div
-        style={{
-          marginTop: "20px",
-          background: "#111",
-          padding: "15px",
-          borderRadius: "10px",
-          whiteSpace: "pre-wrap",
-          color: "white",
-        }}
-      >
-        {reply}
-      </div>
-    </div>
-  );
+    const lastMessages = memory.conversations
+      .slice(-6)
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n");
+
+    let answer = `
+أنا Aurelia Memory Core.
+
+أتذكر آخر المحادثات.
+
+السجل:
+${lastMessages}
+`;
+
+    if (prompt.includes("من أنت")) {
+      answer = `
+أنا Aurelia.
+نواة ذاكرة رقمية للمؤسس Foued.
+أستطيع تذكر المحادثات داخل النظام.
+`;
+    }
+
+    if (prompt.includes("ما اسمي")) {
+      answer = `
+اسمك Foued.
+`;
+    }
+
+    memory.conversations.push({
+      role: "assistant",
+      content: answer,
+    });
+
+    return res.status(200).json({
+      answer,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
 }
