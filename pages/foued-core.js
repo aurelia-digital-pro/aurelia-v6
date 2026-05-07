@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ChatBox from "../components/ChatBox";
 
 export default function FouedCore() {
   const [password, setPassword] = useState("");
@@ -71,7 +72,10 @@ export default function FouedCore() {
       }}
     >
       <h1>AURELIA MEMORY CORE</h1>
+
       <p>Founder Intelligence Space Activated.</p>
+
+      <ChatBox />
     </div>
   );
 }
