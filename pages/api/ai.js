@@ -8,7 +8,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body;
+    const  { prompt } = req.body;
+
+if (prompt.includes("ما اسمي")) {
+  return res.status(200).json({
+    reply: "اسمك Foued يا مؤسس Aurelia."
+  });
+}
+
 
     if (!prompt) {
       return res.status(400).json({
