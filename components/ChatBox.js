@@ -5,18 +5,33 @@ export default function ChatBox() {
   const [reply, setReply] = useState("");
 
   async function sendMessage() {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: message,
-      }),
-    });
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: message,
+        }),
+      });
 
-    const data = await res.json();
-    setReply(data.answer);
+      const data = await res.json();
+
+      console.log(data);
+
+      if (data.answer) {
+        setReply(data.answer);
+      } else if (data.error) {
+        setReply("ERROR: " + data.error);
+      } else {
+        setReply("No response from Aurelia.");
+      }
+
+    } catch (error) {
+      console.error(error);
+      setReply("Connection error.");
+    }
   }
 
   return (
@@ -62,6 +77,8 @@ export default function ChatBox() {
           background: "#111",
           padding: "15px",
           borderRadius: "10px",
+          whiteSpace: "pre-wrap",
+          color: "white",
         }}
       >
         {reply}
