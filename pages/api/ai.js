@@ -8,19 +8,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body;
+    const { prompt } = req.body || {};
+
+    if (!prompt) {
+      return res.status(400).json({
+        error: "No prompt provided",
+      });
+    }
 
     memory.push({
       role: "user",
       content: prompt,
     });
 
-    const answer = `
-Aurelia Memory Active.
+    const lastMessages = memory
+      .slice(-6)
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n");
 
-I remember:
-${memory.map((m) => `${m.role}: ${m.content}`).join("\n")}
+    let answer = `
+أنا Aurelia Memory Core.
+أتذكر المحادثة الأخيرة.
+
+السجل:
+${lastMessages}
 `;
+
+    if (prompt.includes("من أنت")) {
+      answer = `
+أنا Aurelia.
+نواة ذاكرة رقمية للمؤسس Foued.
+أستطيع حفظ المحادثات وتذكرها داخل النظام.
+`;
+    }
+
+    if (prompt.includes("ما اسمي")) {
+      const userMemory = memory.find(
+        (m) =>
+          m.role === "user" &&
+          m.content.includes("اسمي")
+      );
+
+      if (userMemory) {
+        answer = `
+أتذكر أنك قلت:
+${userMemory.content}
+`;
+      }
+    }
 
     memory.push({
       role: "assistant",
@@ -30,7 +65,10 @@ ${memory.map((m) => `${m.role}: ${m.content}`).join("\n")}
     return res.status(200).json({
       answer,
     });
+
   } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       error: "AI server error",
     });
