@@ -42,10 +42,13 @@ export default async function handler(req, res) {
         ]
       })
     });
+const aiData = await response.json()
 
-    const aiData = await response.json()
-   const answer =
+console.log("AI DATA:", aiData)
+
+const answer =
   aiData.choices?.[0]?.message?.content || "خطأ: لم يصل رد من النموذج.";
+   
     // 3. النمو الذاتي: الحفظ التلقائي في جدول decision_ledger
     await supabase.from('decision_ledger').insert([
       { 
