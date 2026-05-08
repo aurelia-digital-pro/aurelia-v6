@@ -1,62 +1,57 @@
 import { createClient } from '@supabase/supabase-js';
 
-// إعداد Supabase
+// إعداد Supabase باستخدام الأسماء الموجودة في صورتك بالضبط
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // يفضل استخدام Service Role للحفظ في الـ Ledger
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-  // 1. السماح فقط بطلبات POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const { prompt, constitution } = req.body;
 
-  // 2. التحقق من المدخلات
-  if (!prompt) {
-    return res.status(400).json({ error: 'Missing prompt' });
-  }
-
-  console.log("--- Starting AI Generation for Aurelia ---");
-
   try {
-    // 3. طلب OpenAI API
-    const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4-turbo",
-        messages: [
-          { role: "system", content: constitution || "You are Aurelia AI." },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7
-      })
-    });
+    console.log("--- Connecting to Gemini API ---");
 
-    const aiData = await openAiResponse.json();
+    // استخدام مفتاح Gemini الموجود في صورتك
+    const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-    // فحص إذا كان هناك خطأ من طرف OpenAI
-    if (!openAiResponse.ok) {
-      console.error("OpenAI Error:", aiData);
-      throw new Error(aiData.error?.message || "Failed to fetch from OpenAI");
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: `${constitution}\n\nUser Question: ${prompt}` }
+              ]
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini Error Details:", data);
+      throw new Error(data.error?.message || "Gemini API Error");
     }
 
-    const answer = aiData.choices?.[0]?.message?.content;
+    // استخراج الرد من هيكلية Gemini
+    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";
 
-    if (!answer) {
-      throw new Error("No answer generated from AI model.");
-    }
+    console.log("AI Answer Generated.");
 
-    console.log("AI Response received successfully.");
-
-    // 4. تخزين البيانات في Supabase (decision_ledger)
-    const { error: supabaseError } = await supabase
+    // التخزين في Supabase بنفس أسماء الأعمدة السابقة
+    const { error: dbError } = await supabase
       .from("decision_ledger")
       .insert([
         {
@@ -66,26 +61,15 @@ export default async function handler(req, res) {
         }
       ]);
 
-    if (supabaseError) {
-      console.error("Supabase Storage Error:", supabaseError);
-      // لا نعطل الرد للمستخدم إذا فشل التخزين، لكن نسجله
-    } else {
-      console.log("Data saved to decision_ledger.");
-    }
+    if (dbError) console.error("Database Log Error:", dbError);
 
-    // 5. إرجاع الرد النهائي للواجهة
-    return res.status(200).json({
-      success: true,
-      answer: answer
-    });
+    return res.status(200).json({ answer });
 
   } catch (error) {
-    console.error("CRITICAL ERROR in /api/ai:", error.message);
-    
-    return res.status(500).json({
-      success: false,
-      error: "Internal Server Error",
-      details: error.message
+    console.error("Critical Failure:", error.message);
+    return res.status(500).json({ 
+      error: "Internal Server Error", 
+      details: error.message 
     });
   }
 }
