@@ -2,45 +2,59 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// =========================
 // إعداد Supabase
+// =========================
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// =========================
+// API Handler
+// =========================
 
 export default async function handler(req, res) {
 
   // السماح فقط بـ POST
   if (req.method !== "POST") {
     return res.status(405).json({
+      success: false,
       error: "Method not allowed"
     });
   }
 
   try {
 
+    // =========================
+    // استقبال البرومبت
+    // =========================
+
     const { prompt } = req.body;
 
-    // التحقق من وجود prompt
     if (!prompt) {
       return res.status(400).json({
+        success: false,
         error: "No prompt provided"
       });
     }
 
     // =========================
-    // 1. قراءة الدستور من Supabase
+    // قراءة الدستور
     // =========================
 
-    const { data: constitutionData, error: constitutionError } =
-      await supabase
-        .from('master_registry')
-        .select('content')
-        .eq('type', 'constitution')
-        .single();
+    const {
+      data: constitutionData,
+      error: constitutionError
+    } = await supabase
+      .from('master_registry')
+      .select('content')
+      .eq('type', 'constitution')
+      .single();
 
     if (constitutionError) {
-      console.error("Constitution Error:", constitutionError);
+      console.error("CONSTITUTION ERROR:", constitutionError);
     }
 
     const constitution =
@@ -48,7 +62,7 @@ export default async function handler(req, res) {
       "You are Aurelia Core. Honest. Responsible. Helpful.";
 
     // =========================
-    // 2. إرسال الطلب إلى OpenAI
+    // إرسال الطلب إلى OpenAI
     // =========================
 
     const openaiResponse = await fetch(
@@ -81,14 +95,39 @@ export default async function handler(req, res) {
       }
     );
 
+    // =========================
+    // قراءة رد OpenAI
+    // =========================
+
     const aiData = await openaiResponse.json();
+
+    console.log("OPENAI RESPONSE:", aiData);
+
+    // =========================
+    // التحقق من الأخطاء
+    // =========================
+
+    if (aiData.error) {
+
+      console.error("OPENAI ERROR:", aiData.error);
+
+      return res.status(500).json({
+        success: false,
+        status: "OPENAI_ERROR",
+        error: aiData.error.message
+      });
+    }
+
+    // =========================
+    // استخراج الرد
+    // =========================
 
     const answer =
       aiData?.choices?.[0]?.message?.content ||
-      "No response generated.";
+      "Aurelia online but no response generated.";
 
     // =========================
-    // 3. حفظ القرار في الذاكرة الدائمة
+    // حفظ القرار
     // =========================
 
     const { error: insertError } =
@@ -102,11 +141,11 @@ export default async function handler(req, res) {
         ]);
 
     if (insertError) {
-      console.error("Decision Ledger Error:", insertError);
+      console.error("DECISION LEDGER ERROR:", insertError);
     }
 
     // =========================
-    // 4. الرد النهائي
+    // الرد النهائي
     // =========================
 
     return res.status(200).json({
@@ -117,7 +156,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
 
-    console.error("Aurelia Core Error:", error);
+    console.error("AURELIA CORE ERROR:", error);
 
     return res.status(500).json({
       success: false,
