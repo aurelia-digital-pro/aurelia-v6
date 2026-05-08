@@ -42,13 +42,28 @@ export default async function handler(req, res) {
         ]
       })
     });
-const aiData = await response.json()
+const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+  },
+  body: JSON.stringify({
+    model: "gpt-4-turbo",
+    messages: [
+      { role: "system", content: constitution },
+      { role: "user", content: prompt }
+    ]
+  })
+});
 
-console.log("AI DATA:", aiData)
+const aiData = await response.json();
+
+console.log("AI DATA:", aiData);
 
 const answer =
-  aiData.choices?.[0]?.message?.content || "خطأ: لم يصل رد من النموذج.";
-   
+  aiData.choices?.[0]?.message?.content ||
+  "خطأ: لم يصل رد من النموذج";
     // 3. النمو الذاتي: الحفظ التلقائي في جدول decision_ledger
     await supabase.from('decision_ledger').insert([
       { 
