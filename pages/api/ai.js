@@ -1,75 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
 
-// إعداد Supabase باستخدام الأسماء الموجودة في صورتك بالضبط
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const { prompt, constitution } = req.body;
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   try {
-    console.log("--- Connecting to Gemini API ---");
+    const { prompt, constitution } = req.body;
 
-    // استخدام مفتاح Gemini الموجود في صورتك
-    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    // فحص المفاتيح قبل البدء
+    if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY مفقود في إعدادات Vercel");
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error("رابط Supabase مفقود");
 
+    // طلب Gemini
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: `${constitution}\n\nUser Question: ${prompt}` }
-              ]
-            }
-          ]
+          contents: [{ parts: [{ text: `${constitution}\n\n${prompt}` }] }]
         })
       }
     );
 
     const data = await response.json();
+    if (!response.ok) throw new Error(`Gemini API Error: ${data.error?.message}`);
 
-    if (!response.ok) {
-      console.error("Gemini Error Details:", data);
-      throw new Error(data.error?.message || "Gemini API Error");
-    }
+    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
 
-    // استخراج الرد من هيكلية Gemini
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";
-
-    console.log("AI Answer Generated.");
-
-    // التخزين في Supabase بنفس أسماء الأعمدة السابقة
+    // محاولة التخزين مع معالجة خطأ قاعدة البيانات بشكل منفصل
     const { error: dbError } = await supabase
       .from("decision_ledger")
-      .insert([
-        {
-          prompt: prompt,
-          answer: answer,
-          created_at: new Date().toISOString()
-        }
-      ]);
+      .insert([{ prompt, answer }]);
 
-    if (dbError) console.error("Database Log Error:", dbError);
+    if (dbError) {
+       console.error("Supabase Error:", dbError.message);
+       // سنعيد الرد حتى لو فشل التخزين لنعرف أن الذكاء الاصطناعي يعمل
+       return res.status(200).json({ answer: answer, db_status: "Database error: " + dbError.message });
+    }
 
     return res.status(200).json({ answer });
 
   } catch (error) {
-    console.error("Critical Failure:", error.message);
-    return res.status(500).json({ 
-      error: "Internal Server Error", 
-      details: error.message 
-    });
+    // هذا السطر سيجعل رسالة الخطأ تظهر لك في الشاشة بدلاً من Internal Server Error غامضة
+    return res.status(500).json({ error: error.message });
   }
 }
