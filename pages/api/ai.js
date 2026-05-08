@@ -14,20 +14,18 @@ export default async function handler(req, res) {
   // تهيئة Supabase
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // مفتاح Gemini السيادي
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   
   if (!GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'System Error: GEMINI_API_KEY is not defined in Vercel settings.' });
+    return res.status(500).json({ error: 'Missing GEMINI_API_KEY in Vercel settings.' });
   }
 
   try {
-    // الاتصال بـ Gemini باستخدام نموذج 1.5-flash المستقر
+    // الحل هنا: قمت بتغيير v1beta إلى v1 وتحديث الرابط
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,29 +38,24 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      // هنا تكمن الحقيقة: سيخبرك النظام لماذا فشل (هل المفتاح خطأ؟ أم المنطقة محظورة؟)
-      console.error('Gemini Failure Details:', data);
+      console.error('Gemini Detail:', data);
       return res.status(response.status).json({ 
-        error: `Gemini API Error: ${data.error?.message || 'Unknown Failure'}`,
-        status: response.status 
+        error: data.error?.message || 'Gemini API call failed' 
       });
     }
 
-    const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI';
 
-    // حفظ في سجل القرارات (Aurelia Ledger)
+    // حفظ في Supabase
     try {
-      await supabase
-        .from('decision_ledger')
-        .insert([{ prompt, answer }]);
-    } catch (dbError) {
-      console.error('Supabase logging failed, but AI answer was generated.');
+      await supabase.from('decision_ledger').insert([{ prompt, answer }]);
+    } catch (e) {
+      console.log('Logging to DB failed, but continuing...');
     }
 
     return res.status(200).json({ success: true, answer });
 
   } catch (error) {
-    console.error('Critical Server Error:', error);
-    return res.status(500).json({ error: `Server Crash: ${error.message}` });
+    return res.status(500).json({ error: `Server Error: ${error.message}` });
   }
 }
