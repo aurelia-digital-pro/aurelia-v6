@@ -11,14 +11,14 @@ export default async function handler(req, res) {
   try {
     const { prompt, constitution } = req.body;
 
-    // التأكد من استخدام Gemini كما في صورتك
+    // مخاطبة جيميناي مباشرة بالمفتاح الموجود في صورتك
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `${constitution}\n\nUser: ${prompt}` }] }]
+          contents: [{ parts: [{ text: `${constitution}\n\n${prompt}` }] }]
         })
       }
     );
@@ -28,13 +28,12 @@ export default async function handler(req, res) {
 
     const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
 
-    // محاولة الحفظ في Supabase
+    // محاولة الحفظ في قاعدة البيانات
     await supabase.from("decision_ledger").insert([{ prompt, answer }]);
 
     return res.status(200).json({ answer });
-
   } catch (error) {
-    // إظهار الخطأ الحقيقي بدلاً من 500 غامضة
+    // سيطبع لك الخطأ الحقيقي على الشاشة لتعرف السبب
     return res.status(500).json({ error: error.message });
   }
 }
