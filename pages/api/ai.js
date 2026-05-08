@@ -1,61 +1,55 @@
-// pages/api/ai.js
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
-
-  const { prompt } = req.body;
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+  const { prompt, message } = req.body;
+  const userMessage = prompt || message;
+  if (!userMessage) {
+    return res.status(400).json({ error: "No message provided" });
   }
-
-  // تهيئة Supabase
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  
-  if (!GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'Missing GEMINI_API_KEY in Vercel settings.' });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
   }
-
   try {
-    // الحل هنا: قمت بتغيير v1beta إلى v1 وتحديث الرابط
     const response = await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
+          contents: [
+            {
+              parts: [
+                {
+                  text: userMessage,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
       }
     );
-
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error('Gemini Detail:', data);
-      return res.status(response.status).json({ 
-        error: data.error?.message || 'Gemini API call failed' 
+      const errorData = await response.json();
+      return res.status(response.status).json({
+        error: errorData?.error?.message || "Gemini API error",
+        details: errorData,
       });
     }
-
-    const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI';
-
-    // حفظ في Supabase
-    try {
-      await supabase.from('decision_ledger').insert([{ prompt, answer }]);
-    } catch (e) {
-      console.log('Logging to DB failed, but continuing...');
-    }
-
-    return res.status(200).json({ success: true, answer });
-
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return res.status(200).json({ result: text, response: text });
   } catch (error) {
-    return res.status(500).json({ error: `Server Error: ${error.message}` });
+    return res.status(500).json({
+      error: "Internal server error",
+      message: error.message,
+    });
   }
 }
