@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 export default function ChatBox() {
@@ -5,88 +6,79 @@ export default function ChatBox() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const sendMessage = async () => {
-    if (!input || input.trim() === "") return;
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
 
-    const userText = input.trim();
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userText }]);
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setLoading(true);
 
     try {
-      const res = await fetch("/api/ai", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText })
+        body: JSON.stringify({ message: text, session_id: "default" })
       });
 
       const data = await res.json();
-
-      const reply =
-        data.result ||
-        data.response ||
-        data.ideas ||
-        data.answer ||
-        data.error ||
-        "No response from Aurelia";
+      const reply = data.result || data.response || data.error || "No response";
 
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Connection error. Please try again." }
+        { role: "assistant", content: "Connection error. Try again." }
       ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
+  const onKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      send();
     }
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ flex: 1, overflowY: "auto", padding: "1rem" }}>
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              marginBottom: "1rem",
-              textAlign: msg.role === "user" ? "right" : "left"
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                padding: "0.5rem 1rem",
-                borderRadius: "1rem",
-                background: msg.role === "user" ? "#6366f1" : "#1e1e2e",
-                color: "#fff",
-                maxWidth: "80%"
-              }}
-            >
-              {msg.content}
-            </span>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "sans-serif" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {messages.length === 0 && (
+          <p style={{ color: "#666", textAlign: "center", marginTop: "2rem" }}>
+            Aurelia is ready.
+          </p>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "80%",
+              padding: "0.6rem 1rem",
+              borderRadius: "1rem",
+              background: m.role === "user" ? "#6366f1" : "#1e1e2e",
+              color: "#fff",
+              lineHeight: "1.5",
+              whiteSpace: "pre-wrap"
+            }}>
+              {m.content}
+            </div>
           </div>
         ))}
         {loading && (
-          <div style={{ color: "#888", fontStyle: "italic" }}>
+          <div style={{ color: "#888", fontStyle: "italic", paddingLeft: "0.5rem" }}>
             Aurelia is thinking...
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", padding: "1rem", gap: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem", padding: "1rem", borderTop: "1px solid #222" }}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask Aurelia..."
+          onKeyDown={onKey}
+          placeholder="Message Aurelia..."
+          disabled={loading}
           style={{
             flex: 1,
             padding: "0.75rem 1rem",
@@ -94,20 +86,22 @@ export default function ChatBox() {
             border: "1px solid #333",
             background: "#111",
             color: "#fff",
-            fontSize: "1rem"
+            fontSize: "1rem",
+            outline: "none"
           }}
         />
         <button
-          onClick={sendMessage}
+          onClick={send}
           disabled={loading}
           style={{
             padding: "0.75rem 1.5rem",
             borderRadius: "0.5rem",
-            background: "#6366f1",
+            background: loading ? "#444" : "#6366f1",
             color: "#fff",
             border: "none",
             cursor: loading ? "not-allowed" : "pointer",
-            fontSize: "1rem"
+            fontSize: "1rem",
+            fontWeight: "600"
           }}
         >
           {loading ? "..." : "Send"}
