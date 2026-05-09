@@ -13,7 +13,6 @@ export default async function handler(req, res) {
 
   const history = req.body.history || [];
 
-  // ─── GROQ ────────────────────────────────────────────────
   let reply = "";
   try {
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -42,7 +41,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Groq failed", message: err.message });
   }
 
-  // ─── SUPABASE MEMORY ─────────────────────────────────────
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
   const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   const sessionId = req.body.session_id || "default";
@@ -52,12 +50,10 @@ export default async function handler(req, res) {
       const db = createClient(supabaseUrl, supabaseKey, {
         auth: { persistSession: false, autoRefreshToken: false }
       });
-
       await db.from("core_memory").insert({ role: "user", content: message, session_id: sessionId });
       await db.from("core_memory").insert({ role: "assistant", content: reply, session_id: sessionId });
-
     } catch (err) {
-      console.error("[memory] insert failed:", err.message);
+      console.error("[memory]", err.message);
     }
   }
 
