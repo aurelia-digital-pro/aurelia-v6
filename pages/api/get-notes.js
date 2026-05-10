@@ -1,26 +1,22 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
-  try {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-    const notes = [
-      {
-        id: 1,
-        content: "Aurelia Memory Core Online",
-        created_at: new Date()
-      },
-      {
-        id: 2,
-        content: "Private AI system initialized",
-        created_at: new Date()
-      }
-    ]
+  const { data, error } = await supabase
+    .from('foued_notes')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    return res.status(200).json({
-      notes
-    })
-
-  } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to load notes'
-    })
+  if (error) {
+    console.error('[get-notes] error:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch notes' });
   }
+
+  return res.status(200).json(data);
 }
