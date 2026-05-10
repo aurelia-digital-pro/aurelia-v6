@@ -1,93 +1,93 @@
-Open
-aurelia-digital-pro
-wants to merge 3 commits into
-main
-from
-Dev
-+72
--42
-Lines changed: 72 additions & 42 deletions
-Conversation1 (1)
-Commits3 (3)
-Checks1 (1)
-Files changed1 (1)
-Open
-Dev#11
-aurelia-digital-pro
-wants to merge 3 commits into
-main
-from
-Dev
-Conversation
-@aurelia-digital-pro
-aurelia-digital-pro
-commented
-15 hours ago
-No description provided.
+import { createClient } from '@supabase/supabase-js';
+import { askGroq } from '../../lib/ai';
 
-aurelia-digital-pro added 3 commits 2 days ago
-@aurelia-digital-pro
-Update ai.js
-ee46bf4
-@aurelia-digital-pro
-Update ai.js
-dde080d
-@aurelia-digital-pro
-Update ai.js
-30ff026
-@vercel
-vercel Bot
-commented
-15 hours ago
-The latest updates on your projects. Learn more about Vercel for GitHub.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-Project	Deployment	Actions	Updated (UTC)
-aurelia-v6	Ready Ready	Preview, Comment	May 9, 2026 8:56pm
-This branch was successfully deployed
-1 active deployment
-Merge info
-Checks awaiting conflict resolution
-2 successful checks
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const { message, session_id } = req.body;
+  console.log('[ai] received', { session_id, message_length: message?.length });
 
-This branch has conflicts that must be resolved
-Use the web editor or the command line to resolve conflicts before continuing.
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'message is required' });
+  }
 
-pages/api/ai.js
-You can also merge this with the command line. 
-Still in progress?
-@aurelia-digital-pro
+  try {
+    let sessionId = (session_id && session_id !== 'default') ? session_id.trim() : null;
 
+    if (sessionId) {
+      const { data: existing } = await supabase
+        .from('foued_sessions').select('id').eq('id', sessionId).limit(1);
+      if (!existing || existing.length === 0) {
+        console.warn('[ai] session not found, creating new');
+        sessionId = null;
+      } else {
+        console.log('[ai] session found:', sessionId);
+      }
+    }
 
-Add a comment
-Comment
- 
-Add your comment here...
-Remember, contributions to this repository should follow our GitHub Community Guidelines.
- ProTip! Add .patch or .diff to the end of URLs for Git’s plaintext views.
-Reviewers
-No reviews
-Still in progress?
-Assignees
-No one—
-Labels
-None yet
-Projects
-None yet
-Milestone
-No milestone
-Development
-Successfully merging this pull request may close these issues.
+    if (!sessionId) {
+      const { data: newSession, error: insertErr } = await supabase
+        .from('foued_sessions').insert({}).select('id').single();
+      if (insertErr || !newSession) {
+        console.error('[ai] create session failed:', insertErr?.message);
+        return res.status(500).json({ error: 'Failed to create session' });
+      }
+      sessionId = newSession.id;
+      console.log('[ai] new session:', sessionId);
+    }
 
-None yet
+    const { data: userMsg, error: userErr } = await supabase
+      .from('foued_messages')
+      .insert({ session_id: sessionId, role: 'user', content: message.trim() })
+      .select('id').single();
 
+    if (userErr) {
+      console.error('[ai] save user message failed:', userErr.message);
+      return res.status(500).json({ error: 'Failed to save message' });
+    }
+    console.log('[ai] user message saved:', userMsg.id);
 
-Notifications
-Customize
-You’re receiving notifications because you authored the thread.
-1 participant
-@aurelia-digital-pro
-Footer
-© 2026 GitHub, Inc.
-Footer navigation
-Terms
+    const { data: history, error: histErr } = await supabase
+      .from('foued_messages').select('role, content')
+      .eq('session_id', sessionId).order('created_at', { ascending: true });
+
+    if (histErr) {
+      console.error('[ai] load history failed:', histErr.message);
+      return res.status(500).json({ error: 'Failed to load history' });
+    }
+    console.log('[ai] history:', history.length, 'messages');
+
+    const reply = await askGroq(
+      history.map((m) => ({ role: m.role, content: m.content }))
+    );
+
+    console.log('[ai] groq reply received');
+
+    const { data: aiMsg, error: aiErr } = await supabase
+      .from('foued_messages')
+      .insert({ session_id: sessionId, role: 'assistant', content: reply })
+      .select('id').single();
+
+    if (aiErr) {
+      console.error('[ai] save reply failed:', aiErr.message);
+      return res.status(500).json({ error: 'Failed to save reply' });
+    }
+    console.log('[ai] assistant reply saved:', aiMsg.id);
+
+    const { count } = await supabase
+      .from('foued_messages').select('id', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+
+    console.log('[ai] done. session:', sessionId, 'total:', count);
+    return res.status(200).json({ reply, session_id: sessionId, message_count: count });
+
+  } catch (err) {
+    console.error('[ai] unexpected error:', err?.message || err);
+    return res.status(500).json({ error: 'Internal server error: ' + (err?.message || 'unknown') });
+  }
+}
