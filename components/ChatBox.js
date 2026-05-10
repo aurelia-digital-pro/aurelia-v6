@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 
 export default function ChatBox() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
 
   const send = async () => {
     const text = input.trim();
@@ -15,14 +15,19 @@ export default function ChatBox() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, session_id: "default" })
+        body: JSON.stringify({ message: text, session_id: sessionId })
       });
 
       const data = await res.json();
-      const reply = data.result || data.response || data.error || "No response";
+
+      if (data.session_id) {
+        setSessionId(data.session_id);
+      }
+
+      const reply = data.reply || data.result || data.response || data.error || "No response";
 
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch {
