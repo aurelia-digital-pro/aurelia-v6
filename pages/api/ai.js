@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { askGroq } from '../../lib/ai';
+import { askGroq, parseCommand } from '../../lib/ai';
 import { buildSystemContext } from '../../lib/constitution';
 
 const supabase = createClient(
@@ -25,14 +25,14 @@ export default async function handler(req, res) {
       ? session_id.trim()
       : 'session_' + Date.now();
 
-    // ── 1. حفظ رسالة المستخدم
+    // 1. حفظ رسالة المستخدم
     const { error: userErr } = await supabase
       .from('core_memory')
       .insert({ session_id: sessionId, role: 'user', content: message.trim() });
 
     if (userErr) return res.status(500).json({ error: userErr.message });
 
-    // ── 2. استرجاع التاريخ
+    // 2. استرجاع التاريخ
     const { data: history, error: histErr } = await supabase
       .from('core_memory')
       .select('role, content')
@@ -41,19 +41,33 @@ export default async function handler(req, res) {
 
     if (histErr) return res.status(500).json({ error: histErr.message });
 
-    // ── 3. بناء System Context من Supabase مباشرة
+    // 3. System Context من Supabase
     const systemContext = await buildSystemContext();
 
-    // ── 4. Rolling Window
+    // 4. Rolling Window
     const recentHistory = history.slice(-MEMORY_WINDOW);
 
-    // ── 5. استدعاء Groq
+    // 5. استدعاء Groq
     const reply = await askGroq([
       { role: 'system', content: systemContext },
       ...recentHistory.map((m) => ({ role: m.role, content: m.content })),
     ]);
 
-    // ── 6. حفظ الرد
+    // 6. استخراج الأوامر
+    const commands = parseCommand(reply);
+
+    // 7. حفظ الأوامر في execution_memory
+    if (commands.length > 0) {
+      const rows = commands.map((cmd) => ({
+        type: cmd.type,
+        key: cmd.type.toLowerCase(),
+        value: cmd.payload,
+        session_id: sessionId,
+      }));
+      await supabase.from('execution_memory').insert(rows);
+    }
+
+    // 8. حفظ رد Aurelia
     const { error: aiErr } = await supabase
       .from('core_memory')
       .insert({ session_id: sessionId, role: 'assistant', content: reply });
@@ -65,6 +79,7 @@ export default async function handler(req, res) {
       session_id: sessionId,
       memory_total: history.length + 1,
       memory_sent: recentHistory.length,
+      commands,
     });
 
   } catch (err) {
