@@ -1,61 +1,152 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const message = (req.body.message || req.body.prompt || "").trim();
-  if (!message) return res.status(400).json({ error: "Message is required" });
+  const { message, session_id } = req.body;
 
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) return res.status(500).json({ error: "GROQ_API_KEY not configured" });
+  console.log('[ai] received', { session_id, message_length: message?.length });
 
-  const history = req.body.history || [];
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    console.warn('[ai] missing message');
+    return res.status(400).json({ error: 'message is required' });
+  }
 
-  let reply = "";
   try {
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + groqKey
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { role: "system", content: "You are Aurelia, an intelligent AI workspace assistant built for a founder named Foued." },
-          ...history.slice(-10),
-          { role: "user", content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 2048
-      })
+    let sessionId = session_id?.trim() || null;
+
+    // 1. التحقق من الجلسة أو إنشاء جلسة جديدة
+    if (sessionId) {
+      const { data: existing, error: fetchErr } = await supabase
+        .from('foued_sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .limit(1);
+
+      if (fetchErr) {
+        console.error('[ai] error fetching session:', fetchErr.message);
+        sessionId = null;
+      } else if (!existing || existing.length === 0) {
+        console.warn('[ai] session_id not found, creating new session');
+        sessionId = null;
+      } else {
+        console.log('[ai] existing session found:', sessionId);
+      }
+    }
+
+    if (!sessionId) {
+      const { data: newSession, error: insertErr } = await supabase
+        .from('foued_sessions')
+        .insert({})
+        .select('id')
+        .single();
+
+      if (insertErr || !newSession) {
+        console.error('[ai] failed to create session:', insertErr?.message);
+        return res.status(500).json({ error: 'Failed to create session' });
+      }
+
+      sessionId = newSession.id;
+      console.log('[ai] new session created:', sessionId);
+    }
+
+    // 2. حفظ رسالة المستخدم
+    const { data: userMsg, error: userMsgErr } = await supabase
+      .from('foued_messages')
+      .insert({ session_id: sessionId, role: 'user', content: message.trim() })
+      .select('id')
+      .single();
+
+    if (userMsgErr) {
+      console.error('[ai] failed to save user message:', userMsgErr.message);
+      return res.status(500).json({ error: 'Failed to save user message' });
+    }
+
+    console.log('[ai] user message saved, id:', userMsg.id);
+
+    // 3. تحميل كامل تاريخ المحادثة
+    const { data: history, error: historyErr } = await supabase
+      .from('foued_messages')
+      .select('role, content')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
+
+    if (historyErr) {
+      console.error('[ai] failed to load history:', historyErr.message);
+      return res.status(500).json({ error: 'Failed to load history' });
+    }
+
+    console.log('[ai] history loaded, messages:', history.length);
+
+    // 4. استدعاء OpenAI
+    const reply = await getAiReply(history);
+
+    // 5. حفظ رد الـ AI
+    const { data: assistantMsg, error: assistantMsgErr } = await supabase
+      .from('foued_messages')
+      .insert({ session_id: sessionId, role: 'assistant', content: reply })
+      .select('id')
+      .single();
+
+    if (assistantMsgErr) {
+      console.error('[ai] failed to save assistant reply:', assistantMsgErr.message);
+      return res.status(500).json({ error: 'Failed to save assistant reply' });
+    }
+
+    console.log('[ai] assistant reply saved, id:', assistantMsg.id);
+
+    // 6. عدد الرسائل الكلي
+    const { count } = await supabase
+      .from('foued_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+
+    console.log('[ai] completed. session:', sessionId, 'total messages:', count);
+
+    return res.status(200).json({
+      reply,
+      session_id: sessionId,
+      message_count: count,
     });
 
-    const groqData = await groqRes.json();
-    if (!groqRes.ok) return res.status(groqRes.status).json({ error: groqData?.error?.message });
-    reply = groqData?.choices?.[0]?.message?.content || "";
-
   } catch (err) {
-    return res.status(500).json({ error: "Groq failed", message: err.message });
+    console.error('[ai] unexpected error:', err?.message || err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function getAiReply(history) {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    const last = [...history].reverse().find(m => m.role === 'user');
+    return `[No API Key] Echo: ${last?.content ?? ''}`;
   }
 
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
-  const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-  const sessionId = req.body.session_id || "default";
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: history.map(m => ({ role: m.role, content: m.content })),
+    }),
+  });
 
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const db = createClient(supabaseUrl, supabaseKey, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      await db.from("core_memory").insert({ role: "user", content: message, session_id: sessionId });
-      await db.from("core_memory").insert({ role: "assistant", content: reply, session_id: sessionId });
-    } catch (err) {
-      console.error("[memory]", err.message);
-    }
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`OpenAI error ${response.status}: ${text}`);
   }
 
-  return res.status(200).json({ result: reply, response: reply, ideas: reply });
+  const data = await response.json();
+  return data.choices[0]?.message?.content ?? '';
 }
