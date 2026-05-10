@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import Groq from 'groq-sdk';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,14 +18,13 @@ export default async function handler(req, res) {
   console.log('[ai] received', { session_id, message_length: message?.length });
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    console.warn('[ai] missing message');
     return res.status(400).json({ error: 'message is required' });
   }
 
   try {
-    let sessionId = session_id?.trim() || null;
+    let sessionId = session_id && session_id !== 'default' ? session_id.trim() : null;
 
-    // 1. التحقق من الجلسة أو إنشاء جلسة جديدة
+    // 1. التحقق من الجلسة أو إنشاء جديدة
     if (sessionId) {
       const { data: existing, error: fetchErr } = await supabase
         .from('foued_sessions')
@@ -30,14 +32,11 @@ export default async function handler(req, res) {
         .eq('id', sessionId)
         .limit(1);
 
-      if (fetchErr) {
-        console.error('[ai] error fetching session:', fetchErr.message);
-        sessionId = null;
-      } else if (!existing || existing.length === 0) {
-        console.warn('[ai] session_id not found, creating new session');
+      if (fetchErr || !existing || existing.length === 0) {
+        console.warn('[ai] session not found, creating new');
         sessionId = null;
       } else {
-        console.log('[ai] existing session found:', sessionId);
+        console.log('[ai] session found:', sessionId);
       }
     }
 
@@ -50,7 +49,7 @@ export default async function handler(req, res) {
 
       if (insertErr || !newSession) {
         console.error('[ai] failed to create session:', insertErr?.message);
-        return res.status(500).json({ error: 'Failed to create session' });
+        return res.status(500).json({ error: 'Failed to create session: ' + insertErr?.message });
       }
 
       sessionId = newSession.id;
@@ -58,95 +57,68 @@ export default async function handler(req, res) {
     }
 
     // 2. حفظ رسالة المستخدم
-    const { data: userMsg, error: userMsgErr } = await supabase
+    const { data: userMsg, error: userErr } = await supabase
       .from('foued_messages')
       .insert({ session_id: sessionId, role: 'user', content: message.trim() })
       .select('id')
       .single();
 
-    if (userMsgErr) {
-      console.error('[ai] failed to save user message:', userMsgErr.message);
-      return res.status(500).json({ error: 'Failed to save user message' });
+    if (userErr) {
+      console.error('[ai] failed to save user message:', userErr.message);
+      return res.status(500).json({ error: 'Failed to save message' });
     }
 
     console.log('[ai] user message saved, id:', userMsg.id);
 
-    // 3. تحميل كامل تاريخ المحادثة
-    const { data: history, error: historyErr } = await supabase
+    // 3. تحميل تاريخ المحادثة
+    const { data: history, error: histErr } = await supabase
       .from('foued_messages')
       .select('role, content')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
-    if (historyErr) {
-      console.error('[ai] failed to load history:', historyErr.message);
+    if (histErr) {
+      console.error('[ai] failed to load history:', histErr.message);
       return res.status(500).json({ error: 'Failed to load history' });
     }
 
-    console.log('[ai] history loaded, messages:', history.length);
+    console.log('[ai] history loaded:', history.length, 'messages');
 
-    // 4. استدعاء OpenAI
-    const reply = await getAiReply(history);
+    // 4. استدعاء Groq
+    const completion = await groq.chat.completions.create({
+      model: 'llama3-8b-8192',
+      messages: history.map((m) => ({ role: m.role, content: m.content })),
+    });
 
-    // 5. حفظ رد الـ AI
-    const { data: assistantMsg, error: assistantMsgErr } = await supabase
+    const reply = completion.choices[0]?.message?.content ?? '';
+
+    console.log('[ai] groq reply received');
+
+    // 5. حفظ رد Groq
+    const { data: aiMsg, error: aiErr } = await supabase
       .from('foued_messages')
       .insert({ session_id: sessionId, role: 'assistant', content: reply })
       .select('id')
       .single();
 
-    if (assistantMsgErr) {
-      console.error('[ai] failed to save assistant reply:', assistantMsgErr.message);
-      return res.status(500).json({ error: 'Failed to save assistant reply' });
+    if (aiErr) {
+      console.error('[ai] failed to save assistant reply:', aiErr.message);
+      return res.status(500).json({ error: 'Failed to save reply' });
     }
 
-    console.log('[ai] assistant reply saved, id:', assistantMsg.id);
+    console.log('[ai] assistant reply saved, id:', aiMsg.id);
 
-    // 6. عدد الرسائل الكلي
     const { count } = await supabase
       .from('foued_messages')
       .select('id', { count: 'exact', head: true })
       .eq('session_id', sessionId);
 
-    console.log('[ai] completed. session:', sessionId, 'total messages:', count);
+    console.log('[ai] done. session:', sessionId, 'total:', count);
 
-    return res.status(200).json({
-      reply,
-      session_id: sessionId,
-      message_count: count,
-    });
+    return res.status(200).json({ reply, session_id: sessionId, message_count: count });
 
   } catch (err) {
     console.error('[ai] unexpected error:', err?.message || err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error: ' + (err?.message || 'unknown') });
   }
-}
-
-async function getAiReply(history) {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    const last = [...history].reverse().find(m => m.role === 'user');
-    return `[No API Key] Echo: ${last?.content ?? ''}`;
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: history.map(m => ({ role: m.role, content: m.content })),
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI error ${response.status}: ${text}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content ?? '';
 }
