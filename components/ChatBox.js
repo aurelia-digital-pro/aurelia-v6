@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const SESSION_KEY = "aurelia_session_id";
 
 export default function ChatBox() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
+  const [sessionId, setSessionId] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(SESSION_KEY) || null;
+    }
+    return null;
+  });
 
   const send = async () => {
     const text = input.trim();
@@ -23,7 +30,10 @@ export default function ChatBox() {
 
       const data = await res.json();
 
-      if (data.session_id) setSessionId(data.session_id);
+      if (data.session_id) {
+        setSessionId(data.session_id);
+        localStorage.setItem(SESSION_KEY, data.session_id);
+      }
 
       const reply = data.reply || data.result || data.error || "No response";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
@@ -54,10 +64,19 @@ export default function ChatBox() {
         {loading && <div style={{ color: "#888", fontStyle: "italic", paddingLeft: "0.5rem" }}>Aurelia is thinking...</div>}
       </div>
       <div style={{ display: "flex", gap: "0.5rem", padding: "1rem", borderTop: "1px solid #222" }}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} placeholder="Message Aurelia..." disabled={loading}
-          style={{ flex: 1, padding: "0.75rem 1rem", borderRadius: "0.5rem", border: "1px solid #333", background: "#111", color: "#fff", fontSize: "1rem", outline: "none" }} />
-        <button onClick={send} disabled={loading}
-          style={{ padding: "0.75rem 1.5rem", borderRadius: "0.5rem", background: loading ? "#444" : "#6366f1", color: "#fff", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "1rem", fontWeight: "600" }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKey}
+          placeholder="Message Aurelia..."
+          disabled={loading}
+          style={{ flex: 1, padding: "0.75rem 1rem", borderRadius: "0.5rem", border: "1px solid #333", background: "#111", color: "#fff", fontSize: "1rem", outline: "none" }}
+        />
+        <button
+          onClick={send}
+          disabled={loading}
+          style={{ padding: "0.75rem 1.5rem", borderRadius: "0.5rem", background: loading ? "#444" : "#6366f1", color: "#fff", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "1rem", fontWeight: "600" }}
+        >
           {loading ? "..." : "Send"}
         </button>
       </div>
