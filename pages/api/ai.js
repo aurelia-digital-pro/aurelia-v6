@@ -1,94 +1,74 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
+import { askGroq } from '../../lib/ai';
+import { buildSystemContext } from '../../lib/constitution';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const MEMORY_WINDOW = parseInt(process.env.MEMORY_WINDOW || '6', 10);
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const message = (req.body.message || req.body.prompt || "").trim();
-  if (!message) return res.status(400).json({ error: "Message is required" });
+  const { message, session_id } = req.body;
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "GROQ_API_KEY not configured" });
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'message is required' });
+  }
 
-  // ─── GROQ ────────────────────────────────────────────────
-  let reply = "";
   try {
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { role: "system", content: "You are Aurelia, an intelligent AI workspace assistant." },
-          { role: "user", content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 2048
-      })
-    });
+    const sessionId = (session_id && session_id !== 'default')
+      ? session_id.trim()
+      : 'session_' + Date.now();
 
-    const groqData = await groqRes.json();
-    reply = groqData?.choices?.[0]?.message?.content || "";
+    // ── 1. حفظ رسالة المستخدم
+    const { error: userErr } = await supabase
+      .from('core_memory')
+      .insert({ session_id: sessionId, role: 'user', content: message.trim() });
+
+    if (userErr) return res.status(500).json({ error: userErr.message });
+
+    // ── 2. استرجاع التاريخ
+    const { data: history, error: histErr } = await supabase
+      .from('core_memory')
+      .select('role, content')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
+
+    if (histErr) return res.status(500).json({ error: histErr.message });
+
+    // ── 3. بناء System Context من Supabase مباشرة
+    const systemContext = await buildSystemContext();
+
+    // ── 4. Rolling Window
+    const recentHistory = history.slice(-MEMORY_WINDOW);
+
+    // ── 5. استدعاء Groq
+    const reply = await askGroq([
+      { role: 'system', content: systemContext },
+      ...recentHistory.map((m) => ({ role: m.role, content: m.content })),
+    ]);
+
+    // ── 6. حفظ الرد
+    const { error: aiErr } = await supabase
+      .from('core_memory')
+      .insert({ session_id: sessionId, role: 'assistant', content: reply });
+
+    if (aiErr) return res.status(500).json({ error: aiErr.message });
+
+    return res.status(200).json({
+      reply,
+      session_id: sessionId,
+      memory_total: history.length + 1,
+      memory_sent: recentHistory.length,
+    });
 
   } catch (err) {
-    return res.status(500).json({ error: "Groq failed", message: err.message });
+    console.error('[ai] error:', err?.message || err);
+    return res.status(500).json({ error: err?.message || 'Internal server error' });
   }
-
-  // ─── SUPABASE INSERT ─────────────────────────────────────
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/$/, "");
-  const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-
-  console.log("[chat] supabase_url_set:", !!supabaseUrl);
-  console.log("[chat] service_role_key_set:", !!supabaseKey);
-  console.log("[chat] key_starts_eyJ:", supabaseKey.startsWith("eyJ"));
-
-  if (supabaseUrl && supabaseKey) {
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false, autoRefreshToken: false }
-    });
-
-    const sessionId = req.body.session_id || "default";
-
-    // Insert user message
-    console.log("[chat] Saving user message to core_memory...");
-    const { data: d1, error: e1 } = await supabase
-      .from("core_memory")
-      .insert({ role: "user", content: message, session_id: sessionId })
-      .select();
-
-    console.log("[chat] user insert result:", JSON.stringify({ data: d1, error: e1 }));
-
-    // Insert assistant reply
-    console.log("[chat] Saving assistant reply to core_memory...");
-    const { data: d2, error: e2 } = await supabase
-      .from("core_memory")
-      .insert({ role: "assistant", content: reply, session_id: sessionId })
-      .select();
-
-    console.log("[chat] assistant insert result:", JSON.stringify({ data: d2, error: e2 }));
-
-    if (e1 || e2) {
-      return res.status(200).json({
-        result: reply,
-        response: reply,
-        memory_saved: false,
-        insert_errors: {
-          user_error: e1 ? { code: e1.code, message: e1.message, hint: e1.hint } : null,
-          assistant_error: e2 ? { code: e2.code, message: e2.message, hint: e2.hint } : null
-        }
-      });
-    }
-  } else {
-    console.log("[chat] Supabase not configured — skipping memory save");
-  }
-
-  return res.status(200).json({
-    result: reply,
-    response: reply,
-    memory_saved: !!(supabaseUrl && supabaseKey)
-  });
 }
