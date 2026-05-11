@@ -1,5 +1,6 @@
 import { askGroq, parseCommand } from '../../lib/ai';
 import { buildSystemContext } from '../../lib/constitution';
+import { buildKnowledgeContext } from '../../lib/knowledge';
 import { saveMessage, getHistory, getExecutionMemory, formatExecutionContext } from '../../lib/memory';
 import { supabase } from '../../lib/supabase';
 
@@ -21,12 +22,15 @@ export default async function handler(req, res) {
 
     await saveMessage('user', message.trim(), sessionId);
 
-    const [history, execMemory, systemContext] = await Promise.all([
+    // استرجاع كل الطبقات بالتوازي
+    const [history, execMemory, knowledgeContext] = await Promise.all([
       getHistory(sessionId, MEMORY_WINDOW),
       getExecutionMemory(sessionId),
-      buildSystemContext(),
+      buildKnowledgeContext(sessionId),
     ]);
 
+    // بناء الـ context الكامل
+    const systemContext = await buildSystemContext(knowledgeContext);
     const execContext = formatExecutionContext(execMemory);
     const fullContext = execContext ? `${systemContext}\n${execContext}` : systemContext;
 
@@ -58,7 +62,7 @@ export default async function handler(req, res) {
       commands,
     });
   } catch (err) {
-    console.error('[ai] error:', err?.message || err);
+    console.error('[aegion] error:', err?.message || err);
     return res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }
