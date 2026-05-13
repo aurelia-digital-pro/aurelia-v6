@@ -1,81 +1,34 @@
-// ═══════════════════════════════════════════════════════════════════
-// AEGION — AI LAYER v2.0
-// Groq execution + command parsing.
-// All calls go through here — no direct Groq fetch outside this file.
-// ═══════════════════════════════════════════════════════════════════
+import { runBrain } from '../../lib/runtimeBrain';
+import { constitution } from '../../lib/constitution';
 
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama3-8b-8192";
-const GROQ_MAX_TOK = parseInt(process.env.GROQ_MAX_TOKENS || "1024", 10);
-const GROQ_TEMP = parseFloat(process.env.GROQ_TEMPERATURE || "0.7");
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-// ═══════════════════════════════════════════════════════════════════
-// askGroq
-// Sends a prepared messages array to Groq.
-// messages = [{ role: 'system', content }, { role: 'user', content }, ...]
-// ═══════════════════════════════════════════════════════════════════
-export async function askGroq(messages) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("GROQ_API_KEY not configured");
+  const { message, session_id } = req.body;
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages,
-      max_tokens: GROQ_MAX_TOK,
-      temperature: GROQ_TEMP,
-    }),
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'message is required' });
+  }
+
+  const sessionId =
+    session_id && session_id !== 'default' && session_id !== 'null'
+      ? String(session_id).trim()
+      : 'aegion_' + Date.now();
+
+  const result = await runBrain({
+    userInput:    message.trim(),
+    sessionId,
+    constitution,
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq API error: ${err}`);
+  if (!result.success) {
+    return res.status(500).json({ error: result.error || 'Runtime error' });
   }
 
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || "";
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// parseCommand
-// Extracts [CMD:TYPE payload] directives from AI response text.
-// Commands are the ONLY mechanism for structured AI actions.
-// ═══════════════════════════════════════════════════════════════════
-const VALID_COMMANDS = new Set([
-  "ADD_TASK",
-  "LOG_DECISION",
-  "UPDATE_PHASE",
-  "LOG_PROJECT",
-  "LOG_FILE",
-]);
-
-export function parseCommand(text) {
-  if (!text || typeof text !== "string") return [];
-
-  const regex = /\[CMD:(\w+)\s+([^\]]+)\]/g;
-  const commands = [];
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    const type = match[1].trim().toUpperCase();
-    const payload = match[2].trim();
-    if (VALID_COMMANDS.has(type) && payload.length > 0) {
-      commands.push({ type, payload });
-    }
-  }
-
-  return commands;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// estimateTokens
-// Lightweight char-based token estimate (~4 chars per token).
-// Used by chat.js to guard against context overflow.
-// ═══════════════════════════════════════════════════════════════════
-export function estimateTokens(text) {
-  return Math.ceil((text || "").length / 4);
+  return res.status(200).json({
+    reply:      result.response,
+    session_id: sessionId,
+  });
 }
