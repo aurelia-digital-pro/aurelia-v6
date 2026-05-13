@@ -1,68 +1,81 @@
-import { askGroq, parseCommand } from '../../lib/ai';
-import { buildSystemContext } from '../../lib/constitution';
-import { buildKnowledgeContext } from '../../lib/knowledge';
-import { saveMessage, getHistory, getExecutionMemory, formatExecutionContext } from '../../lib/memory';
-import { supabase } from '../../lib/supabase';
+// ═══════════════════════════════════════════════════════════════════
+// AEGION — AI LAYER v2.0
+// Groq execution + command parsing.
+// All calls go through here — no direct Groq fetch outside this file.
+// ═══════════════════════════════════════════════════════════════════
 
-const MEMORY_WINDOW = parseInt(process.env.MEMORY_WINDOW || '20', 10);
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama3-8b-8192";
+const GROQ_MAX_TOK = parseInt(process.env.GROQ_MAX_TOKENS || "1024", 10);
+const GROQ_TEMP = parseFloat(process.env.GROQ_TEMPERATURE || "0.7");
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+// ═══════════════════════════════════════════════════════════════════
+// askGroq
+// Sends a prepared messages array to Groq.
+// messages = [{ role: 'system', content }, { role: 'user', content }, ...]
+// ═══════════════════════════════════════════════════════════════════
+export async function askGroq(messages) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY not configured");
 
-  const { message, session_id } = req.body;
-  if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    return res.status(400).json({ error: 'message is required' });
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages,
+      max_tokens: GROQ_MAX_TOK,
+      temperature: GROQ_TEMP,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq API error: ${err}`);
   }
 
-  try {
-    const sessionId =
-      session_id && session_id !== 'default' && session_id !== 'null' && session_id !== null
-        ? session_id.trim()
-        : 'aegion_' + Date.now();
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content || "";
+}
 
-    await saveMessage('user', message.trim(), sessionId);
+// ═══════════════════════════════════════════════════════════════════
+// parseCommand
+// Extracts [CMD:TYPE payload] directives from AI response text.
+// Commands are the ONLY mechanism for structured AI actions.
+// ═══════════════════════════════════════════════════════════════════
+const VALID_COMMANDS = new Set([
+  "ADD_TASK",
+  "LOG_DECISION",
+  "UPDATE_PHASE",
+  "LOG_PROJECT",
+  "LOG_FILE",
+]);
 
-    // استرجاع كل الطبقات بالتوازي
-    const [history, execMemory, knowledgeContext] = await Promise.all([
-      getHistory(sessionId, MEMORY_WINDOW),
-      getExecutionMemory(sessionId),
-      buildKnowledgeContext(sessionId),
-    ]);
+export function parseCommand(text) {
+  if (!text || typeof text !== "string") return [];
 
-    // بناء الـ context الكامل
-    const systemContext = await buildSystemContext(knowledgeContext);
-    const execContext = formatExecutionContext(execMemory);
-    const fullContext = execContext ? `${systemContext}\n${execContext}` : systemContext;
+  const regex = /\[CMD:(\w+)\s+([^\]]+)\]/g;
+  const commands = [];
+  let match;
 
-    const reply = await askGroq([
-      { role: 'system', content: fullContext },
-      ...history.map((m) => ({ role: m.role, content: m.content })),
-    ]);
-
-    const commands = parseCommand(reply);
-
-    if (commands.length > 0) {
-      await supabase.from('execution_memory').insert(
-        commands.map((cmd) => ({
-          type: cmd.type,
-          key: cmd.type.toLowerCase(),
-          value: cmd.payload,
-          session_id: sessionId,
-        }))
-      );
+  while ((match = regex.exec(text)) !== null) {
+    const type = match[1].trim().toUpperCase();
+    const payload = match[2].trim();
+    if (VALID_COMMANDS.has(type) && payload.length > 0) {
+      commands.push({ type, payload });
     }
-
-    await saveMessage('assistant', reply, sessionId);
-
-    return res.status(200).json({
-      reply,
-      session_id: sessionId,
-      memory_total: history.length + 1,
-      memory_sent: history.length,
-      commands,
-    });
-  } catch (err) {
-    console.error('[aegion] error:', err?.message || err);
-    return res.status(500).json({ error: err?.message || 'Internal server error' });
   }
+
+  return commands;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// estimateTokens
+// Lightweight char-based token estimate (~4 chars per token).
+// Used by chat.js to guard against context overflow.
+// ═══════════════════════════════════════════════════════════════════
+export function estimateTokens(text) {
+  return Math.ceil((text || "").length / 4);
 }
