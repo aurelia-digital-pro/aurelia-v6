@@ -401,3 +401,5 @@ export default function Home() {
     </>
   )
 }
+<a href="/library">Library</a>
+<a href="/library">Library</a>
