@@ -1,15 +1,17 @@
 // pages/library.js
-// صفحة المكتبة المتطورة - تحافظ على الهوية البصرية لمنصة أوريليا
-// تم تطويرها لتعمل مع Next.js، وجاهزة للتكامل مع Supabase لاحقاً
+// Knowledge Dashboard UI System - Aurelia v6
+// Preserves canvas animation, search functionality, AI tools, all existing data
+// Implements Sidebar + Main Content + Right Stats Panel with glassmorphism and gold accent (#D4AF37)
 
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 
 export default function Library() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const canvasRef = useRef(null);
 
-  // رسم شبكة معرفية متحركة في منطقة البطل (Hero)
+  // Canvas knowledge network animation (preserved exactly)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -42,7 +44,7 @@ export default function Library() {
     const draw = () => {
       if (!ctx) return;
       ctx.clearRect(0, 0, width, height);
-      // رسم وصلات بين الجسيمات القريبة
+      // draw connections
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -52,19 +54,19 @@ export default function Library() {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(0, 102, 204, ${0.15 * (1 - dist / 120)})`;
+            ctx.strokeStyle = `rgba(212, 175, 55, ${0.12 * (1 - dist / 120)})`;
             ctx.lineWidth = 0.8;
             ctx.stroke();
           }
         }
       }
-      // رسم الجسيمات
+      // draw particles
       particles.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 150, 255, ${p.alpha})`;
+        ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
         ctx.fill();
-        // تحريك
+        // move
         p.x += p.vx;
         p.y += p.vy;
         if (p.x < 0) p.x = width;
@@ -85,7 +87,7 @@ export default function Library() {
     };
   }, []);
 
-  // بيانات نموذجية (سيتم استبدالها لاحقاً بـ Supabase)
+  // Mock data (ready for Supabase)
   const featuredBooks = [
     { id: 1, title: 'On the Origin of Species', author: 'Charles Darwin', cover: '/covers/darwin.jpg', year: 1859 },
     { id: 2, title: 'The Art of War', author: 'Sun Tzu', cover: '/covers/suntzu.jpg', year: 500 },
@@ -109,12 +111,20 @@ export default function Library() {
     'الفلسفة', 'التاريخ', 'العلوم', 'الأدب', 'القانون', 'التكنولوجيا', 'علم النفس', 'الاقتصاد'
   ];
 
-  // قراءة وهمية
   const readingProgress = {
     weeklyGoal: 72,
     currentStreak: 16,
     totalHours: 124,
   };
+
+  // Sidebar navigation items
+  const navItems = [
+    { name: 'الرئيسية', icon: '🏠', id: 'home' },
+    { name: 'المكتبة', icon: '📚', id: 'library' },
+    { name: 'التصنيفات', icon: '🏷️', id: 'categories' },
+    { name: 'التقدم', icon: '📊', id: 'progress' },
+    { name: 'أدوات الذكاء', icon: '🤖', id: 'ai' },
+  ];
 
   return (
     <>
@@ -123,158 +133,237 @@ export default function Library() {
         <meta name="description" content="مكتبة أوريليا الرقمية – آلاف الكتب والمصادر من الملكية العامة والمرخصة، مع أدوات ذكاء اصطناعي للتعلم العميق." />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-b from-[#03070f] to-[#050b14] text-white font-sans">
-        {/* Hero section مع شبكة المعرفة المتحركة */}
-        <section className="relative overflow-hidden">
-          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-50" style={{ zIndex: 0 }} />
-          <div className="relative z-10 container mx-auto px-4 py-20 md:py-32 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold font-['Syncopate',sans-serif] bg-gradient-to-r from-white to-blue-400 bg-clip-text text-transparent">
-              مكتبة أوريليا
-            </h1>
-            <p className="text-gray-300 mt-4 max-w-2xl mx-auto text-lg">
-              منصة المعرفة المتكاملة – مصادر موثقة، أدوات ذكاء اصطناعي، وتجربة تعلم خالية من الإعلانات
-            </p>
+      <div className="relative min-h-screen bg-gradient-to-br from-[#03070f] via-[#050b14] to-[#0d1527] text-white font-sans overflow-x-hidden">
+        {/* Canvas background layer */}
+        <canvas ref={canvasRef} className="fixed inset-0 w-full h-full opacity-35 pointer-events-none" style={{ zIndex: 0 }} />
 
-            {/* شريط البحث */}
-            <div className="mt-10 max-w-2xl mx-auto">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="ابحث عن كتب، مؤلفين، أو مواضيع..."
-                  className="w-full bg-black/40 backdrop-blur-md border border-blue-500/30 rounded-2xl py-4 px-6 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
-                />
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+        {/* Layout container */}
+        <div className="relative z-10 flex flex-col lg:flex-row min-h-screen">
+          
+          {/* ========== LEFT SIDEBAR ========== */}
+          <aside className={`${sidebarCollapsed ? 'w-20' : 'w-72'} shrink-0 transition-all duration-300 bg-[#03070f]/85 backdrop-blur-xl border-l border-white/10 p-5 flex flex-col gap-6`}>
+            <div className="flex justify-between items-center mb-6">
+              <div className={`${sidebarCollapsed ? 'hidden' : 'block'} font-['Syncopate'] text-xl font-extrabold tracking-widest bg-gradient-to-r from-[#D4AF37] to-white bg-clip-text text-transparent`}>
+                AURELIA
+              </div>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
+                className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20 hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/40 transition duration-200"
+              >
+                {sidebarCollapsed ? '→' : '←'}
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-[#D4AF37]/10 border border-transparent hover:border-[#D4AF37]/20 cursor-pointer transition-all group">
+                  <span className="text-xl filter drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">{item.icon}</span>
+                  <span className={`${sidebarCollapsed ? 'hidden' : 'inline'} font-medium group-hover:text-[#D4AF37] transition-colors`}>{item.name}</span>
+                </div>
+              ))}
+            </nav>
+            <div className="mt-auto pt-8 text-center text-xs text-gray-500">
+              {!sidebarCollapsed && <div className="font-['Syncopate']">© {new Date().getFullYear()}<br/>AURELIA V6</div>}
+            </div>
+          </aside>
+
+          {/* ========== MAIN CONTENT ========== */}
+          <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+            {/* Hero Header */}
+            <div className="mb-12 text-center relative py-8 px-4 bg-white/[0.02] border border-white/[0.05] rounded-3xl backdrop-blur-md overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none"></div>
+              <h1 className="text-3xl md:text-5xl font-extrabold font-['Syncopate'] bg-gradient-to-r from-white via-[#D4AF37] to-white bg-clip-text text-transparent tracking-wide">
+                مكتبة أوريليا
+              </h1>
+              <p className="text-gray-300 mt-3 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
+                منصة المعرفة المتكاملة – مصادر موثقة، أدوات ذكاء اصطناعي، وتجربة تعلم خالية من الإعلانات
+              </p>
+              {/* Preserved State Search */}
+              <div className="mt-8 max-w-xl mx-auto">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="ابحث عن كتب، مؤلفين، أو مواضيع..."
+                    className="w-full bg-black/60 backdrop-blur-md border border-[#D4AF37]/30 rounded-2xl py-3.5 px-6 pr-12 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition duration-300 shadow-lg text-right"
+                  />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* الكتب المميزة */}
-        <section className="container mx-auto px-4 py-16">
-          <h2 className="text-2xl md:text-3xl font-bold border-r-4 border-blue-500 pr-4 mb-8">الكتب المميزة</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredBooks.map((book) => (
-              <div key={book.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(0,102,204,0.3)] transition-all duration-300">
-                <div className="w-full h-40 bg-gradient-to-br from-blue-900/40 to-purple-900/30 rounded-xl mb-3 flex items-center justify-center text-5xl">📖</div>
-                <h3 className="font-bold text-lg mt-2">{book.title}</h3>
-                <p className="text-gray-400 text-sm">{book.author}</p>
-                <p className="text-gray-500 text-xs mt-1">{book.year}</p>
+            {/* Featured Books */}
+            <section className="mb-12">
+              <div className="flex items-center gap-3 border-r-4 border-[#D4AF37] pr-4 mb-8">
+                <h2 className="text-2xl font-extrabold tracking-wide">الكتب المميزة</h2>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* أحدث الإضافات + المجال العام */}
-        <div className="container mx-auto px-4 py-8 grid md:grid-cols-2 gap-12">
-          <div>
-            <h2 className="text-2xl font-bold border-r-4 border-blue-500 pr-4 mb-6">أحدث الإضافات</h2>
-            <div className="space-y-4">
-              {latestAdditions.map((book) => (
-                <div key={book.id} className="bg-white/5 rounded-xl p-4 flex justify-between items-center hover:bg-white/10 transition">
-                  <div>
-                    <p className="font-semibold">{book.title}</p>
-                    <p className="text-gray-400 text-sm">{book.author}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredBooks.map((book) => (
+                  <div key={book.id} className="group bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:border-[#D4AF37]/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] transition-all duration-300 hover:-translate-y-1">
+                    <div className="w-full h-44 bg-gradient-to-br from-gray-900 via-slate-850 to-black rounded-xl mb-4 flex items-center justify-center text-5xl group-hover:scale-105 transition-transform duration-300 border border-white/5 shadow-inner">
+                      📖
+                    </div>
+                    <h3 className="font-bold text-lg mt-2 line-clamp-1 group-hover:text-[#D4AF37] transition-colors">{book.title}</h3>
+                    <p className="text-gray-400 text-sm mt-1">{book.author}</p>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                      <span className="text-xs text-gray-500">عام النشر</span>
+                      <span className="text-xs font-semibold bg-[#D4AF37]/10 text-[#D4AF37] px-2.5 py-0.5 rounded-full">{book.year}</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-blue-400">{new Date(book.added).toLocaleDateString('ar-EG')}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </section>
 
-          <div>
-            <h2 className="text-2xl font-bold border-r-4 border-blue-500 pr-4 mb-6">الملكية العامة</h2>
-            <div className="space-y-4">
-              {publicDomain.map((book) => (
-                <div key={book.id} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
-                  <p className="font-semibold">{book.title}</p>
-                  <p className="text-gray-400 text-sm">{book.author}</p>
-                  <span className="inline-block mt-2 text-xs bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full">ملكية عامة</span>
+            {/* Split Grid for Additions & Public Domain */}
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 backdrop-blur-sm">
+                <div className="flex items-center gap-3 border-r-4 border-[#D4AF37] pr-4 mb-6">
+                  <h2 className="text-xl font-bold">أحدث الإضافات</h2>
                 </div>
-              ))}
+                <div className="space-y-4">
+                  {latestAdditions.map((book) => (
+                    <div key={book.id} className="bg-white/[0.03] rounded-2xl p-4 flex justify-between items-center hover:bg-white/[0.06] transition-all border border-transparent hover:border-[#D4AF37]/20">
+                      <div>
+                        <p className="font-semibold group-hover:text-[#D4AF37]">{book.title}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{book.author}</p>
+                      </div>
+                      <span className="text-xs bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1 rounded-full">{new Date(book.added).toLocaleDateString('ar-EG')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 backdrop-blur-sm">
+                <div className="flex items-center gap-3 border-r-4 border-[#D4AF37] pr-4 mb-6">
+                  <h2 className="text-xl font-bold">الملكية العامة</h2>
+                </div>
+                <div className="space-y-4">
+                  {publicDomain.map((book) => (
+                    <div key={book.id} className="bg-white/[0.03] rounded-2xl p-4 flex justify-between items-center hover:bg-white/[0.06] transition-all border border-transparent hover:border-[#D4AF37]/20">
+                      <div>
+                        <p className="font-semibold">{book.title}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{book.author}</p>
+                      </div>
+                      <span className="inline-block text-[10px] tracking-wider uppercase font-extrabold bg-emerald-950/40 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full">ملكية عامة</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Cognitive Categories */}
+            <section className="mb-12">
+              <div className="flex items-center gap-3 border-r-4 border-[#D4AF37] pr-4 mb-6">
+                <h2 className="text-xl font-bold">التصنيفات المعرفية</h2>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {categories.map((cat) => (
+                  <span key={cat} className="px-5 py-2.5 bg-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-2xl text-sm font-medium hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/40 cursor-pointer transition duration-200">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </section>
+
+            {/* AI Tools Section - Exact Copy Preserved */}
+            <section className="mb-16">
+              <div className="flex items-center gap-3 border-r-4 border-[#D4AF37] pr-4 mb-8">
+                <h2 className="text-2xl md:text-3xl font-extrabold">أدوات ذكاء اصطناعي</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { icon: '📄', name: 'تلخيص ذكي', desc: 'استخلص الأفكار الرئيسية من أي كتاب أو مقالة' },
+                  { icon: '💬', name: 'شرح المفاهيم', desc: 'تبسيط النصوص المعقدة بأمثلة واقعية' },
+                  { icon: '🌐', name: 'ترجمة فورية', desc: 'ترجمة نصوص كاملة مع الحفاظ على السياق' },
+                  { icon: '💡', name: 'استخراج الأفكار', desc: 'احصل على قائمة بالنقاط الجوهرية والمفاهيم الأساسية' },
+                ].map((tool) => (
+                  <div key={tool.name} className="bg-white/[0.02] backdrop-blur-md rounded-2xl p-6 text-center border border-white/10 hover:border-[#D4AF37]/50 transition duration-300 group hover:shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">{tool.icon}</div>
+                    <h3 className="font-bold text-lg group-hover:text-[#D4AF37] transition-colors">{tool.name}</h3>
+                    <p className="text-gray-400 text-sm mt-2 leading-relaxed">{tool.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </main>
+
+          {/* ========== RIGHT STATS PANEL ========== */}
+          <aside className="w-full lg:w-80 shrink-0 p-6 md:p-8 bg-[#03070f]/80 backdrop-blur-xl border-r border-white/10 flex flex-col gap-6">
+            <div className="sticky top-8">
+              <div className="bg-gradient-to-br from-gray-900/60 to-black/80 rounded-3xl p-6 border border-[#D4AF37]/20 relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4AF37]/5 rounded-full blur-2xl pointer-events-none"></div>
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+                  <span className="text-[#D4AF37]">📈</span> تقدمك في القراءة
+                </h3>
+                
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between text-xs mb-2 text-gray-400">
+                      <span>الهدف الأسبوعي</span>
+                      <span className="text-[#D4AF37] font-bold">{readingProgress.weeklyGoal}%</span>
+                    </div>
+                    <div className="w-full bg-white/5 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-[#D4AF37] h-2.5 rounded-full" style={{ width: `${readingProgress.weeklyGoal}%` }}></div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                    <span className="text-sm text-gray-400">سلسلة القراءة</span>
+                    <span className="text-xl font-bold text-[#D4AF37]">{readingProgress.currentStreak} يوم</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">إجمالي ساعات التعلم</span>
+                    <span className="text-xl font-bold text-[#D4AF37]">{readingProgress.totalHours} ساعة</span>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-white/5 text-center text-xs text-gray-500">
+                  <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-1.5"></span>
+                  آخر نشاط: اليوم
+                </div>
+              </div>
+              
+              <div className="mt-6 text-center text-xs text-gray-500 bg-white/[0.01] border border-white/[0.05] rounded-2xl p-4">
+                <p>✨ أسبوعك القادم على بعد 28% فقط</p>
+              </div>
+            </div>
+          </aside>
         </div>
 
-        {/* تصنيفات المعرفة */}
-        <section className="container mx-auto px-4 py-12">
-          <h2 className="text-2xl font-bold border-r-4 border-blue-500 pr-4 mb-6">التصنيفات المعرفية</h2>
-          <div className="flex flex-wrap gap-3">
-            {categories.map((cat) => (
-              <span key={cat} className="px-5 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm hover:bg-blue-500/20 cursor-pointer transition">
-                {cat}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* تقدم القراءة */}
-        <section className="container mx-auto px-4 py-12">
-          <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-2xl p-6 backdrop-blur-sm border border-white/10">
-            <h2 className="text-2xl font-bold mb-4">تقدمك في القراءة</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div>
-                <p className="text-gray-300 text-sm">الهدف الأسبوعي</p>
-                <p className="text-3xl font-bold">{readingProgress.weeklyGoal}%</p>
-                <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${readingProgress.weeklyGoal}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <p className="text-gray-300 text-sm">سلسلة القراءة المستمرة</p>
-                <p className="text-3xl font-bold">{readingProgress.currentStreak} يوم</p>
-              </div>
-              <div>
-                <p className="text-gray-300 text-sm">إجمالي ساعات التعلم</p>
-                <p className="text-3xl font-bold">{readingProgress.totalHours}</p>
-              </div>
+        {/* Footer */}
+        <footer className="relative z-10 border-t border-white/10 py-6 text-center text-gray-400 text-xs bg-black/60 backdrop-blur-md">
+          <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex gap-6 text-gray-400">
+              <span className="flex items-center gap-1.5">✅ 100% محتويات قانونية</span>
+              <span className="flex items-center gap-1.5">🔒 تحترم حقوق النشر</span>
+              <span className="flex items-center gap-1.5">🛡️ مصادر موثقة</span>
             </div>
-          </div>
-        </section>
-
-        {/* أدوات الذكاء الاصطناعي */}
-        <section className="container mx-auto px-4 py-16">
-          <h2 className="text-2xl md:text-3xl font-bold border-r-4 border-blue-500 pr-4 mb-8">أدوات ذكاء اصطناعي</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { icon: '📄', name: 'تلخيص ذكي', desc: 'استخلص الأفكار الرئيسية من أي كتاب أو مقالة' },
-              { icon: '💬', name: 'شرح المفاهيم', desc: 'تبسيط النصوص المعقدة بأمثلة واقعية' },
-              { icon: '🌐', name: 'ترجمة فورية', desc: 'ترجمة نصوص كاملة مع الحفاظ على السياق' },
-              { icon: '💡', name: 'استخراج الأفكار', desc: 'احصل على قائمة بالنقاط الجوهرية والمفاهيم الأساسية' },
-            ].map((tool) => (
-              <div key={tool.name} className="bg-white/5 backdrop-blur rounded-xl p-5 text-center border border-white/10 hover:border-blue-400 transition group">
-                <div className="text-4xl mb-3">{tool.icon}</div>
-                <h3 className="font-bold text-lg">{tool.name}</h3>
-                <p className="text-gray-400 text-sm mt-2">{tool.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* تذييل قانوني - 100% محتوى قانوني */}
-        <footer className="border-t border-white/10 mt-16 py-8 text-center text-gray-400 text-sm">
-          <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex gap-6">
-              <span className="flex items-center gap-1">✅ 100% محتويات قانونية</span>
-              <span className="flex items-center gap-1">🔒 تحترم حقوق النشر</span>
-              <span className="flex items-center gap-1">🛡️ مصادر موثقة</span>
-            </div>
-            <p>© {new Date().getFullYear()} Aurelia – منصة معرفية مهنية. جميع المحتويات من الملكية العامة أو مرخصة قانونياً.</p>
+            <p className="text-gray-500">© {new Date().getFullYear()} Aurelia – منصة معرفية مهنية. جميع المحتويات من الملكية العامة أو مرخصة قانونياً.</p>
           </div>
         </footer>
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=Syncopate:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;650;800&family=Syncopate:wght@400;700;800&display=swap');
         body {
           font-family: 'Inter', sans-serif;
           background: #03070f;
+          margin: 0;
+          padding: 0;
         }
         h1, h2, .font-syncopate {
           font-family: 'Syncopate', sans-serif;
+        }
+        .line-clamp-1 {
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </>
