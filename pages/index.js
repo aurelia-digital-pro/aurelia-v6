@@ -113,12 +113,9 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Aurelia Digital Library | Future Knowledge Access</title>
-        <meta name="description" content="Aurelia Digital Library is building a trusted modern gateway to open knowledge, books, learning resources, and research." />
         <meta name="keywords" content="digital library, open knowledge, learning platform, books, research, education" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="index,follow" />
-        <meta property="og:title" content="Aurelia Digital Library" />
         <meta property="og:description" content="The future of trusted digital knowledge access." />
         <meta property="og:url" content="https://aurelia-v6.vercel.app" />
         <link rel="canonical" href="https://aurelia-v6.vercel.app" />
@@ -130,10 +127,10 @@ export default function Home() {
         <div className="orb orb3" />
 
         <header className="navbar">
-          <div className="brand">Aurelia Digital Library</div>
           <nav className="nav">
             <a href="#about">About</a>
             <a href="#mission">Mission</a>
+            <Link href="/library">Library</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/dmca">DMCA</Link>
@@ -149,7 +146,6 @@ export default function Home() {
             <div className="badge">EARLY ACCESS &bull; PHASE ONE</div>
             <h1>The Future of<span> Global Knowledge </span>Starts Here</h1>
             <p className="lead">
-              Aurelia Digital Library is building a modern, trusted, and legal platform for discovering
               public knowledge, learning resources, books, and research for users worldwide.
             </p>
             <form id="join" onSubmit={handleSubmit} className="card">
@@ -242,7 +238,6 @@ export default function Home() {
         <section id="about" className="section">
           <h2>About Aurelia</h2>
           <p>
-            Aurelia Digital Library is an early-stage initiative focused on improving access to trusted
             public knowledge sources, educational materials, and open resources. We believe learning
             should be more organized, modern, and globally accessible.
           </p>
@@ -264,7 +259,6 @@ export default function Home() {
         </section>
 
         <footer className="footer">
-          <div>&copy; {new Date().getFullYear()} Aurelia Digital Library. All rights reserved.</div>
           <div className="footLinks">
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms</Link>
@@ -401,5 +395,3 @@ export default function Home() {
     </>
   )
 }
-<a href="/library">Library</a>
-<a href="/library">Library</a>
