@@ -1,17 +1,22 @@
+```javascript
+'use client';
+
 import React, { useState, useEffect, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { 
- Home, 
- Library as LibraryIcon, 
- Search, 
- Folder, 
- TrendingUp, 
+import {
+ Home,
+ Library as LibraryIcon,
+ Search,
+ Folder,
+ TrendingUp,
  Bot,
  ChevronLeft,
  ChevronRight,
  BookOpen,
  ArrowUpRight,
- ArrowUp
+ ArrowUp,
+ Globe,
+ Database,
+ FileText
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -39,6 +44,13 @@ const vaultData = [
  { name: "OpenAIRE", license: "CC BY", url: "https://www.openaire.eu", desc: "European open science infrastructure." },
  { name: "Europeana", license: "CC0", url: "https://www.europeana.eu", desc: "Cultural heritage collections of Europe." },
  { name: "Data.gov", license: "Public Domain", url: "https://data.gov", desc: "U.S. government's open data portal." }
+];
+
+const aiTools = [
+ { name: "Summarize", icon: FileText, desc: "Condense long texts into key insights." },
+ { name: "Analyze", icon: TrendingUp, desc: "Extract patterns and relationships." },
+ { name: "Research", icon: Search, desc: "Cross-reference multiple sources." },
+ { name: "Query", icon: Bot, desc: "Ask questions to the knowledge base." }
 ];
 
 function ParticleBackground() {
@@ -88,22 +100,6 @@ function ParticleBackground() {
        ctx.beginPath();
        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
        ctx.fill();
-
-       for (let j = i + 1; j < particles.length; j++) {
-         const p2 = particles[j];
-         const dx = p.x - p2.x;
-         const dy = p.y - p2.y;
-         const dist = Math.sqrt(dx * dx + dy * dy);
-
-         if (dist < 120) {
-           ctx.beginPath();
-           ctx.strokeStyle = `rgba(212, 175, 55, ${1 - dist / 120})`;
-           ctx.lineWidth = 0.5;
-           ctx.moveTo(p.x, p.y);
-           ctx.lineTo(p2.x, p2.y);
-           ctx.stroke();
-         }
-       }
      }
 
      animationFrameId = requestAnimationFrame(draw);
@@ -120,34 +116,80 @@ function ParticleBackground() {
  }, []);
 
  return (
-   <canvas 
-     ref={canvasRef} 
-     className="fixed inset-0 z-0 opacity-35 pointer-events-none"
-   />
+   <canvas ref={canvasRef} className="fixed inset-0 z-0 opacity-35 pointer-events-none" />
  );
 }
 
-const navItems = [
- { icon: Home, label: "Home", active: false },
- { icon: LibraryIcon, label: "Library", active: true },
- { icon: Search, label: "Search", active: false },
- { icon: Folder, label: "Categories", active: false },
- { icon: TrendingUp, label: "Progress", active: false },
- { icon: Bot, label: "AI Tools", active: false },
-];
+function Sidebar({ isOpen, setIsOpen }) {
+ const navItems = [
+   { name: "Home", icon: Home, active: false },
+   { name: "Library", icon: LibraryIcon, active: true },
+   { name: "Search", icon: Search, active: false },
+   { name: "Collections", icon: Folder, active: false },
+ ];
+
+ return (
+   <motion.aside
+     initial={{ width: isOpen? 256 : 80 }}
+     animate={{ width: isOpen? 256 : 80 }}
+     transition={{ duration: 0.3 }}
+     className="fixed left-0 top-0 h-screen bg-black/30 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col"
+   >
+     <div className="flex items-center justify-between p-6 border-b border-white/10">
+       {isOpen && (
+         <motion.div
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           className="flex items-center gap-2"
+         >
+           <BookOpen className="w-6 h-6 text-[#D4AF37]" />
+           <span className="text-white font-semibold text-lg">Aurelia</span>
+         </motion.div>
+       )}
+       <button
+         onClick={() => setIsOpen(!isOpen)}
+         className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+       >
+         {isOpen? <ChevronLeft className="w-5 h-5 text-white" /> : <ChevronRight className="w-5 h-5 text-white" />}
+       </button>
+     </div>
+
+     <nav className="flex-1 p-4 space-y-2">
+       {navItems.map((item) => (
+         <button
+           key={item.name}
+           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+             item.active
+              ? 'bg-gradient-to-r from-[#8B5CF6]/20 to-[#EC4899]/20 text-white border border-[#8B5CF6]/30'
+               : 'text-[#9CA3AF] hover:bg-white/5 hover:text-white'
+           }`}
+         >
+           <item.icon className="w-5 h-5 flex-shrink-0" />
+           {isOpen && <span className="font-medium">{item.name}</span>}
+         </button>
+       ))}
+     </nav>
+   </motion.aside>
+ );
+}
 
 export default function Library() {
  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
  const [searchQuery, setSearchQuery] = useState("");
  const [showScrollTop, setShowScrollTop] = useState(false);
- const { toast } = useToast();
+ const [activeCategory, setActiveCategory] = useState("All");
  const mainRef = useRef(null);
 
- const filteredBooks = booksData.filter(book => 
-   book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-   book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-   book.category.toLowerCase().includes(searchQuery.toLowerCase())
- );
+ const categories = ["All",...Array.from(new Set(booksData.map(b => b.category)))];
+
+ const filteredBooks = booksData.filter(book => {
+   const matchesSearch =
+     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     book.category.toLowerCase().includes(searchQuery.toLowerCase());
+   const matchesCategory = activeCategory === "All" || book.category === activeCategory;
+   return matchesSearch && matchesCategory;
+ });
 
  const handleScroll = (e) => {
    setShowScrollTop(e.currentTarget.scrollTop > 300);
@@ -160,363 +202,200 @@ export default function Library() {
  };
 
  const handleAITool = (toolName) => {
-   toast({
-     title: `${toolName} selected`,
-     description: "AI tools coming soon.",
-   });
+   console.log(`${toolName} selected`);
  };
 
  return (
-   <div className="relative min-h-screen bg-[#03070f] text-white flex overflow-hidden font-sans">
+   <div className="min-h-screen bg-gradient-to-br from-[#0A0A1A] to-[#1A0A2E] text-white">
      <ParticleBackground />
+     <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-     {/* Sidebar */}
-     <aside 
-       className={`${isSidebarOpen ? 'w-72' : 'w-20'} flex-shrink-0 transition-all duration-300 border-r border-white/10 bg-[#03070f]/80 backdrop-blur-xl z-20 flex flex-col`}
-       data-testid="layout-sidebar"
-     >
-       <div className="h-20 flex items-center justify-between px-6 border-b border-white/10 relative">
-         {isSidebarOpen && (
-           <div 
-             className="font-syncopate font-bold text-xl bg-gradient-to-r from-[#D4AF37] to-white bg-clip-text text-transparent truncate transition-opacity duration-300"
-             data-testid="text-logo"
-           >
-             AURELIA
-           </div>
-         )}
-         <button 
-           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-           className="text-gray-400 hover:text-white transition-colors absolute right-4"
-           data-testid="button-toggle-sidebar"
-         >
-           {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-         </button>
-       </div>
-
-       <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
-         {navItems.map((item, idx) => (
-           <button
-             key={idx}
-             className={`w-full flex items-center h-12 rounded-xl transition-all duration-200 ${
-               item.active 
-                 ? 'bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37]' 
-                 : 'text-gray-400 hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/20 border border-transparent'
-             } ${isSidebarOpen ? 'px-4 justify-start' : 'justify-center'}`}
-             data-testid={`nav-item-${item.label.toLowerCase()}`}
-           >
-             <item.icon size={20} className={isSidebarOpen ? 'mr-3' : ''} />
-             {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
-           </button>
-         ))}
-       </nav>
-
-       {isSidebarOpen && (
-         <div 
-           className="p-6 text-xs text-gray-500 font-syncopate tracking-wider truncate border-t border-white/10 transition-opacity duration-300"
-           data-testid="text-footer"
-         >
-           © 2026 AURELIA V6
-         </div>
-       )}
-     </aside>
-
-     {/* Main Content */}
-     <main 
+     <main
        ref={mainRef}
        onScroll={handleScroll}
-       className="flex-1 overflow-y-auto relative z-10 scroll-smooth"
-       data-testid="layout-main"
+       className="relative z-10 transition-all duration-300 overflow-y-auto h-screen"
+       style={{ marginLeft: isSidebarOpen? '256px' : '80px' }}
      >
-       <div className="max-w-7xl mx-auto px-6 py-12 lg:px-12 space-y-20">
-         
-         {/* Hero Section */}
-         <section className="text-center space-y-6 pt-10" data-testid="section-hero">
-           <h1 className="font-syncopate text-4xl md:text-6xl font-bold bg-gradient-to-r from-white via-[#D4AF37] to-white bg-clip-text text-transparent inline-block">
-             Aurelia Knowledge Library
-           </h1>
-           <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-             Integrated knowledge platform — verified sources, AI tools, and an ad-free learning experience
-           </p>
-           <div className="max-w-2xl mx-auto relative mt-8">
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-             <input 
-               type="text"
-               placeholder="Search books, authors, or topics..."
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full h-14 pl-12 pr-4 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all text-white placeholder-gray-500"
-               data-testid="input-search"
-             />
+       <div className="max-w-7xl mx-auto p-8 space-y-12">
+
+         <motion.section
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="pt-8"
+         >
+           <div className="bg-black/30 backdrop-blur-xl rounded-2xl border border-white/10 p-12 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#8B5CF6]/20 to-[#EC4899]/20 rounded-full blur-3xl" />
+             <div className="relative z-10">
+               <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent">
+                 Aurelia Digital Library
+               </h1>
+               <p className="text-[#9CA3AF] text-lg max-w-2xl">
+                 Access curated knowledge from humanity's greatest works. Research, analyze, and explore across science, philosophy, literature, and history.
+               </p>
+             </div>
            </div>
-         </section>
+         </motion.section>
 
-         {/* Live Knowledge Section */}
-         <section data-testid="section-live-knowledge">
-           <h2 className="text-2xl font-syncopate mb-8 flex items-center">
-             <span className="w-1 h-6 bg-[#D4AF37] mr-3 rounded-full"></span>
-             Live Knowledge
-           </h2>
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-             
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all" data-testid="card-live-nasa">
-               <div className="flex items-center justify-between mb-4">
-                 <h3 className="font-semibold text-gray-200">NASA — Astronomy Picture of the Day</h3>
-                 <span className="text-[10px] font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded border border-green-500/30">LIVE</span>
-               </div>
-               <div className="h-48 rounded-xl overflow-hidden border border-white/10 mb-4 bg-black/50">
-                 <iframe 
-                   src="https://apod.nasa.gov/apod/astropix.html" 
-                   className="w-full h-full"
-                   loading="lazy"
-                   sandbox="allow-scripts allow-same-origin allow-forms"
-                 />
-               </div>
-               <a href="https://apod.nasa.gov" target="_blank" rel="noopener noreferrer" className="text-sm text-[#D4AF37] hover:text-white transition-colors flex items-center gap-1 w-max">
-                 Visit source <ArrowUpRight size={14} />
-               </a>
-             </motion.div>
-
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all" data-testid="card-live-osm">
-               <div className="flex items-center justify-between mb-4">
-                 <h3 className="font-semibold text-gray-200">OpenStreetMap — Live World Map</h3>
-                 <span className="text-[10px] font-bold px-2 py-0.5 bg-white/10 text-gray-300 rounded border border-white/20">CC BY-SA</span>
-               </div>
-               <div className="h-48 rounded-xl overflow-hidden border border-white/10 mb-4 bg-black/50">
-                 <iframe 
-                   src="https://www.openstreetmap.org/export/embed.html?bbox=-0.004017949104309083%2C51.47612752641776%2C0.00030577182769775396%2C51.478569861898606&layer=mapnik" 
-                   className="w-full h-full"
-                   loading="lazy"
-                   sandbox="allow-scripts allow-same-origin allow-forms"
-                 />
-               </div>
-               <a href="https://openstreetmap.org" target="_blank" rel="noopener noreferrer" className="text-sm text-[#D4AF37] hover:text-white transition-colors flex items-center gap-1 w-max">
-                 Visit source <ArrowUpRight size={14} />
-               </a>
-             </motion.div>
-
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all" data-testid="card-live-owid">
-               <div className="flex items-center justify-between mb-4">
-                 <h3 className="font-semibold text-gray-200">Our World in Data — Global Charts</h3>
-                 <span className="text-[10px] font-bold px-2 py-0.5 bg-white/10 text-gray-300 rounded border border-white/20">CC BY</span>
-               </div>
-               <div className="h-48 rounded-xl overflow-hidden border border-white/10 mb-4 bg-black/50">
-                 <iframe 
-                   src="https://ourworldindata.org/grapher/child-mortality" 
-                   className="w-full h-full bg-white"
-                   loading="lazy"
-                   sandbox="allow-scripts allow-same-origin allow-forms"
-                 />
-               </div>
-               <a href="https://ourworldindata.org" target="_blank" rel="noopener noreferrer" className="text-sm text-[#D4AF37] hover:text-white transition-colors flex items-center gap-1 w-max">
-                 Visit source <ArrowUpRight size={14} />
-               </a>
-             </motion.div>
-
+         <motion.section
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.1 }}
+         >
+           <div className="flex items-center gap-3 mb-6">
+             <Globe className="w-6 h-6 text-[#D4AF37]" />
+             <h2 className="text-2xl font-semibold">Live Knowledge</h2>
            </div>
-         </section>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+               <div className="text-3xl font-bold text-[#D4AF37] mb-2">{booksData.length}</div>
+               <div className="text-[#9CA3AF]">Primary Sources</div>
+             </div>
+             <div className="bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+               <div className="text-3xl font-bold text-[#8B5CF6] mb-2">{vaultData.length}</div>
+               <div className="text-[#9CA3AF]">Data Vaults</div>
+             </div>
+             <div className="bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+               <div className="text-3xl font-bold text-[#EC4899] mb-2">{categories.length - 1}</div>
+               <div className="text-[#9CA3AF]">Categories</div>
+             </div>
+           </div>
+         </motion.section>
 
-         {/* Knowledge Vault */}
-         <section data-testid="section-vault">
-           <h2 className="text-2xl font-syncopate mb-8 flex items-center">
-             <span className="w-1 h-6 bg-[#D4AF37] mr-3 rounded-full"></span>
-             Knowledge Vault
-           </h2>
+         <motion.section
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.2 }}
+         >
+           <div className="flex items-center gap-3 mb-6">
+             <Database className="w-6 h-6 text-[#8B5CF6]" />
+             <h2 className="text-2xl font-semibold">Knowledge Vault</h2>
+           </div>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             {vaultData.map((item, idx) => (
-               <motion.div 
-                 initial={{ opacity: 0, scale: 0.95 }}
-                 whileInView={{ opacity: 1, scale: 1 }}
-                 viewport={{ once: true }}
-                 transition={{ delay: idx * 0.05 }}
-                 key={idx} 
-                 className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all group flex flex-col h-full"
-                 data-testid={`card-vault-${idx}`}
+             {vaultData.map((vault, idx) => (
+               <a
+                 key={idx}
+                 href={vault.url}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="group bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6 hover:border-[#8B5CF6]/50 transition-all"
                >
                  <div className="flex items-start justify-between mb-3">
-                   <h3 className="font-semibold text-lg">{item.name}</h3>
-                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${item.license === 'Public Domain' ? 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/30' : 'bg-teal-500/10 text-teal-400 border-teal-500/20'}`}>
-                     {item.license}
-                   </span>
+                   <h3 className="text-lg font-semibold text-white group-hover:text-[#8B5CF6] transition-colors">
+                     {vault.name}
+                   </h3>
+                   <ArrowUpRight className="w-5 h-5 text-[#9CA3AF] group-hover:text-[#8B5CF6] transition-colors" />
                  </div>
-                 <p className="text-sm text-gray-400 mb-6 flex-1">{item.desc}</p>
-                 <a 
-                   href={item.url} 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   className="text-sm font-medium text-white hover:text-[#D4AF37] transition-colors flex items-center gap-2"
-                 >
-                   Visit Source <ArrowUpRight size={14} />
-                 </a>
-               </motion.div>
+                 <p className="text-[#9CA3AF] text-sm mb-3">{vault.desc}</p>
+                 <span className="inline-block px-3 py-1 bg-[#D4AF37]/10 text-[#D4AF37] text-xs rounded-full border border-[#D4AF37]/20">
+                   {vault.license}
+                 </span>
+               </a>
              ))}
            </div>
-         </section>
+         </motion.section>
 
-         {/* Book Library */}
-         <section data-testid="section-books">
-           <h2 className="text-2xl font-syncopate mb-8 flex items-center">
-             <span className="w-1 h-6 bg-[#D4AF37] mr-3 rounded-full"></span>
-             Book Library
-           </h2>
-           
-           {filteredBooks.length > 0 ? (
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-               {filteredBooks.map((book, idx) => (
-                 <motion.div
-                   initial={{ opacity: 0, y: 20 }}
-                   whileInView={{ opacity: 1, y: 0 }}
-                   viewport={{ once: true }}
-                   transition={{ delay: idx * 0.05 }}
-                   key={book.id}
-                   className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all duration-300 group flex flex-col"
-                   data-testid={`card-book-${book.id}`}
-                 >
-                   <div className="w-12 h-12 bg-gradient-to-br from-gray-800 to-black rounded-xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-[#D4AF37]/30 transition-colors">
-                     <BookOpen className="text-[#D4AF37]" size={24} />
-                   </div>
-                   <h3 className="font-bold text-lg line-clamp-1 group-hover:text-[#D4AF37] transition-colors mb-1">{book.title}</h3>
-                   <p className="text-sm text-gray-400 mb-4">{book.author}</p>
-                   
-                   <div className="flex items-center gap-2 mb-6 text-xs font-medium mt-auto">
-                     <span className="px-2.5 py-1 bg-[#D4AF37]/20 text-[#D4AF37] rounded-full border border-[#D4AF37]/30">{book.category}</span>
-                     <span className="px-2.5 py-1 bg-white/5 text-gray-300 rounded-full border border-white/10">{book.year}</span>
-                     <span className="px-2.5 py-1 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">Public Domain</span>
-                   </div>
-
-                   <a 
-                     href={book.url}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="w-full py-2.5 rounded-lg border border-white/10 flex items-center justify-center gap-2 text-sm font-medium hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37] transition-all"
-                     data-testid={`link-read-${book.id}`}
-                   >
-                     Read <ArrowUpRight size={16} />
-                   </a>
-                 </motion.div>
-               ))}
-             </div>
-           ) : (
-             <div className="py-20 text-center bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-sm" data-testid="empty-state-books">
-               <Search className="mx-auto text-gray-600 mb-4" size={48} />
-               <h3 className="text-xl font-medium text-gray-300">No results found</h3>
-               <p className="text-gray-500 mt-2">Try adjusting your search criteria</p>
-             </div>
-           )}
-         </section>
-
-         {/* Gallica Section */}
-         <section data-testid="section-gallica">
-           <h2 className="text-2xl font-syncopate mb-8 flex items-center">
-             <span className="w-1 h-6 bg-[#D4AF37] mr-3 rounded-full"></span>
-             Gallica — BNF Archive
-           </h2>
-           <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             whileInView={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             className="relative overflow-hidden rounded-3xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#03070f] to-[#D4AF37]/10 p-8 md:p-12 shadow-[0_0_40px_rgba(212,175,55,0.1)]"
-             data-testid="card-gallica"
-           >
-             <div className="relative z-10 max-w-3xl">
-               <h3 className="text-3xl font-syncopate font-bold mb-4 text-white">Bibliothèque nationale de France</h3>
-               <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-                 Millions of digitized documents, manuscripts, maps, and images freely accessible from the French national library.
-               </p>
-               <div className="flex flex-wrap gap-4 mb-8">
-                 <div className="px-4 py-2 bg-black/40 backdrop-blur border border-white/10 rounded-lg text-sm font-medium text-[#D4AF37]">
-                   Millions of documents
-                 </div>
-                 <div className="px-4 py-2 bg-black/40 backdrop-blur border border-white/10 rounded-lg text-sm font-medium text-[#D4AF37]">
-                   Free access
-                 </div>
-               </div>
-               <a 
-                 href="https://gallica.bnf.fr" 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className="inline-flex items-center justify-center h-12 px-8 rounded-xl bg-[#D4AF37] text-black font-semibold hover:bg-white hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all gap-2"
-                 data-testid="link-gallica"
-               >
-                 Access Gallica Archive <ArrowUpRight size={18} />
-               </a>
-             </div>
-             <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-[#D4AF37]/5 to-transparent pointer-events-none" />
-           </motion.div>
-         </section>
-
-         {/* AI Tools Panel */}
-         <section className="pb-20" data-testid="section-ai-tools">
-           <h2 className="text-2xl font-syncopate mb-8 flex items-center">
-             <span className="w-1 h-6 bg-[#D4AF37] mr-3 rounded-full"></span>
-             AI Tools
-           </h2>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all flex flex-col" data-testid="card-tool-summarize">
-               <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">Summarize</h3>
-               <p className="text-sm text-gray-400 mb-6">Paste text to generate a quick summary</p>
-               <textarea 
-                 className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] resize-none mb-4"
-                 placeholder="Enter text here..."
-                 data-testid="input-tool-summarize"
-               ></textarea>
-               <button 
-                 onClick={() => handleAITool('Summarize')}
-                 className="mt-auto w-full py-2.5 rounded-lg border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors font-medium text-sm"
-                 data-testid="button-tool-summarize"
-               >
-                 Generate Summary
-               </button>
-             </motion.div>
-
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all flex flex-col" data-testid="card-tool-translate">
-               <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">Translate</h3>
-               <p className="text-sm text-gray-400 mb-6">Translate knowledge across languages</p>
-               <textarea 
-                 className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] resize-none mb-4"
-                 placeholder="Enter text to translate..."
-                 data-testid="input-tool-translate"
-               ></textarea>
-               <button 
-                 onClick={() => handleAITool('Translate')}
-                 className="mt-auto w-full py-2.5 rounded-lg border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors font-medium text-sm"
-                 data-testid="button-tool-translate"
-               >
-                 Translate Text
-               </button>
-             </motion.div>
-
-             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] hover:border-[#D4AF37]/40 transition-all flex flex-col" data-testid="card-tool-keyideas">
-               <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">Key Ideas</h3>
-               <p className="text-sm text-gray-400 mb-6">Extract core concepts from any text</p>
-               <textarea 
-                 className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] resize-none mb-4"
-                 placeholder="Enter text to extract ideas..."
-                 data-testid="input-tool-keyideas"
-               ></textarea>
-               <button 
-                 onClick={() => handleAITool('Key Ideas')}
-                 className="mt-auto w-full py-2.5 rounded-lg border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors font-medium text-sm"
-                 data-testid="button-tool-keyideas"
-               >
-                 Extract Concepts
-               </button>
-             </motion.div>
-
+         <motion.section
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.3 }}
+         >
+           <div className="flex items-center gap-3 mb-6">
+             <LibraryIcon className="w-6 h-6 text-[#EC4899]" />
+             <h2 className="text-2xl font-semibold">Book Library</h2>
            </div>
-         </section>
+
+           <div className="mb-6 flex flex-col md:flex-row gap-4">
+             <div className="flex-1 relative">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+               <input
+                 type="text"
+                 placeholder="Search by title, author, or category..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="w-full bg-black/30 backdrop-blur-xl border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#8B5CF6]/50 transition-colors"
+               />
+             </div>
+           </div>
+
+           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+             {categories.map((cat) => (
+               <button
+                 key={cat}
+                 onClick={() => setActiveCategory(cat)}
+                 className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                   activeCategory === cat
+                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white'
+                     : 'bg-black/30 backdrop-blur-xl border border-white/10 text-[#9CA3AF] hover:border-[#8B5CF6]/30 hover:text-white'
+                 }`}
+               >
+                 {cat}
+               </button>
+             ))}
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {filteredBooks.map((book) => (
+               <a
+                 key={book.id}
+                 href={book.url}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="group bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6 hover:border-[#EC4899]/50 transition-all"
+               >
+                 <div className="flex items-start justify-between mb-3">
+                   <BookOpen className="w-5 h-5 text-[#D4AF37] flex-shrink-0" />
+                   <span className="text-xs text-[#9CA3AF]">{book.year}</span>
+                 </div>
+                 <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#EC4899] transition-colors line-clamp-2">
+                   {book.title}
+                 </h3>
+                 <p className="text-[#9CA3AF] text-sm mb-3">{book.author}</p>
+                 <span className="inline-block px-3 py-1 bg-[#8B5CF6]/10 text-[#8B5CF6] text-xs rounded-full border border-[#8B5CF6]/20">
+                   {book.category}
+                 </span>
+               </a>
+             ))}
+           </div>
+         </motion.section>
+
+         <motion.section
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.4 }}
+         >
+           <div className="flex items-center gap-3 mb-6">
+             <Bot className="w-6 h-6 text-[#D4AF37]" />
+             <h2 className="text-2xl font-semibold">AI Tools Panel</h2>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+             {aiTools.map((tool) => (
+               <button
+                 key={tool.name}
+                 onClick={() => handleAITool(tool.name)}
+                 className="bg-black/30 backdrop-blur-xl rounded-xl border border-white/10 p-6 hover:border-[#D4AF37]/50 transition-all text-left group"
+               >
+                 <tool.icon className="w-8 h-8 text-[#D4AF37] mb-4 group-hover:scale-110 transition-transform" />
+                 <h3 className="text-lg font-semibold text-white mb-2">{tool.name}</h3>
+                 <p className="text-[#9CA3AF] text-sm">{tool.desc}</p>
+               </button>
+             ))}
+           </div>
+         </motion.section>
 
        </div>
      </main>
 
-     {/* Scroll to Top */}
-     <button
-       onClick={scrollToTop}
-       className={`fixed bottom-8 right-8 w-12 h-12 rounded-full bg-[#D4AF37] text-black flex items-center justify-center shadow-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] transition-all duration-300 z-50 ${showScrollTop ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}
-       data-testid="button-scroll-top"
-     >
-       <ArrowUp size={24} />
-     </button>
+     {showScrollTop && (
+       <motion.button
+         initial={{ opacity: 0, scale: 0.8 }}
+         animate={{ opacity: 1, scale: 1 }}
+         onClick={scrollToTop}
+         className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] rounded-full shadow-lg hover:shadow-[#8B5CF6]/50 transition-all"
+       >
+         <ArrowUp className="w-6 h-6 text-white" />
+       </motion.button>
+     )}
    </div>
  );
 }
+```
