@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -10,58 +11,7 @@ function WalletConnect() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem(WALLET_KEY) : null
-    if (saved) setAddress(saved)
-  }, [])
-
-  const short = (a) => a.slice(0, 4) + '...' + a.slice(-4)
-
-  const handleConnect = async () => {
-    setLoading(true)
-    try {
-      const provider = window?.phantom?.solana
-      if (!provider?.isPhantom) { window.open('https://phantom.app/', '_blank'); return }
-      const res = await provider.connect()
-      const addr = res.publicKey.toString()
-      localStorage.setItem(WALLET_KEY, addr)
-      setAddress(addr)
-      const sessionId = localStorage.getItem(SESSION_KEY)
-      if (sessionId) {
-        await fetch('/api/wallet', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet_address: addr, session_id: sessionId }),
-        })
-      }
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
-  }
-
-  const handleDisconnect = async () => {
-    await window?.phantom?.solana?.disconnect()
-    localStorage.removeItem(WALLET_KEY)
-    setAddress(null)
-  }
-
-  if (address) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ padding: '8px 14px', borderRadius: 12, background: 'rgba(139,92,246,.15)', color: '#c4b5fd', fontSize: 13, fontFamily: 'monospace', border: '1px solid rgba(139,92,246,.3)' }}>
-          {'\u25ce'} {short(address)}
-        </span>
-        <button onClick={handleDisconnect} style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,.06)', color: '#ddd6fe', border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', fontSize: 12 }}>
-          Disconnect
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <button onClick={handleConnect} disabled={loading} style={{ padding: '10px 16px', borderRadius: 14, background: 'linear-gradient(90deg,#8b5cf6,#ec4899)', color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, opacity: loading ? 0.7 : 1 }}>
-      {loading ? 'Connecting...' : '\u25ce Connect Wallet'}
-    </button>
-  )
-}
+const ParticleBackground = dynamic(() => Promise.resolve(() => null), { ssr: false });
 
 export default function Home() {
   const [email, setEmail] = useState('')

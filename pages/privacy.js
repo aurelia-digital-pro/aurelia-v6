@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 // pages/privacy.js
 import Head from 'next/head'
 import Link from 'next/link'

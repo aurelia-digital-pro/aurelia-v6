@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Head from 'next/head'
 import MemoryCore from '../components/MemoryCore'
 
